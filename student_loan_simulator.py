@@ -3,3 +3,6 @@
 
 print("Hello World!")
 print("Hello again!")
+
+# Calculate a loan payment's principal & interest contribution based on interest rate
+

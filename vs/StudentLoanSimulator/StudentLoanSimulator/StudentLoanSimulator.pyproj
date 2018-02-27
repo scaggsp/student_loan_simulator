@@ -6,7 +6,7 @@
     <ProjectHome>.</ProjectHome>
     <StartupFile>
     </StartupFile>
-    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
+    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>StudentLoanSimulator</Name>
@@ -23,6 +23,9 @@
   <ItemGroup>
     <Compile Include="..\..\..\student_loan_simulator.py">
       <Link>student_loan_simulator.py</Link>
+    </Compile>
+    <Compile Include="..\..\..\test_student_loan_simulator_unittest.py">
+      <Link>test_student_loan_simulator_unittest.py</Link>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
