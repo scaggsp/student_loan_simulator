@@ -15,6 +15,7 @@ def calculate_single_period_interest(principal, apr, periods):
 
 class StudentLoan:
     """Defines a student loan."""
-    def __init__(self, principle, apr):
+    def __init__(self, principle, apr, compoundPeriods):
         self.principle = principle
         self.apr = apr
+        self.compoundPeriods = compoundPeriods
