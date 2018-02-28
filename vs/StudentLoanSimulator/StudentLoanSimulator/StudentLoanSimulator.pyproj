@@ -4,9 +4,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>3b3f997e-47c7-4e09-9c43-ef207148a0ae</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>
-    </StartupFile>
-    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
+    <StartupFile>..\..\..\test_student_loan_simulator_unittest.py</StartupFile>
+    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>StudentLoanSimulator</Name>
@@ -23,6 +22,9 @@
   <ItemGroup>
     <Compile Include="..\..\..\student_loan_simulator.py">
       <Link>student_loan_simulator.py</Link>
+    </Compile>
+    <Compile Include="..\..\..\test_student_loan_simulator_unittest.py">
+      <Link>test_student_loan_simulator_unittest.py</Link>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
