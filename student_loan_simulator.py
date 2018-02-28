@@ -12,3 +12,9 @@ def calculate_single_period_interest(principal, apr, periods):
     apr_dec = apr / 100  # annual interest rate (decimal)
     interest = principal * (1 + (apr_dec / periods)) - principal
     return interest
+
+class StudentLoan:
+    """Defines a student loan."""
+    def __init__(self, principle, apr):
+        self.principle = principle
+        self.apr = apr
