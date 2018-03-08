@@ -3,7 +3,7 @@
 
 class StudentLoan:
     """Defines a student loan."""
-    last_payment_details = {"payment": 0,"principleReduction": 0,"InterestPaid": 0}
+    last_payment_details = {"payment": 0, "principleReduction": 0, "InterestPaid": 0}
 
     def __init__(self, principle, apr):
         self.principle = principle
@@ -12,11 +12,12 @@ class StudentLoan:
     def calculate_single_month_interest(self):
         """Calculate and return the interest accrued over a single period."""
         apr_dec = self.apr / 100  # annual interest rate (decimal)
-        monthesPerYear = 12
-        interest = self.principle * (1 + (apr_dec / monthesPerYear)) - self.principle
+        monthes_per_year = 12
+        interest = self.principle * (1 + (apr_dec / monthes_per_year)) - self.principle
         return interest
 
     def apply_payment(self, payment):
+        """Apply a payment to the loan."""
         interest = self.calculate_single_month_interest()
         if payment > self.principle + interest:
             raise OverpaymentException("Over Payment")
