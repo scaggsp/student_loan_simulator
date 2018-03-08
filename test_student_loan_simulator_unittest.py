@@ -2,7 +2,7 @@
 """This script performs unit testing on the student_loan_simulator script.""" 
 
 import unittest
-from student_loan_simulator import StudentLoan
+from student_loan_simulator import StudentLoan, OverpaymentException
 
 dummyPrinciple = 0
 dummyApr = 0
@@ -66,6 +66,24 @@ class TestStudentLoanSimulator(unittest.TestCase):
         loan.apply_payment(200)
         # The payment should pay 100 to interest and the rest to principle
         self.assertEqual(loan.principle, 9900)
+
+    def test_loan_over_pay(self):
+        """Payment is greater than the principal + interest."""
+        payment = 200   # payment significantly higher than payoff amount
+        princ = 100     # starting principle
+        apr_perc = 12   # annual interest rate (percentage)
+        loan = StudentLoan(princ, apr_perc)
+        self.assertRaises(OverpaymentException, loan.apply_payment, payment)
+
+    def test_loan_payoff(self):
+        """Payment pays remaining principal and interest."""
+        princ = 10000         # starting principle
+        apr_perc = 12         # annual interest rate (percentage)
+        loan = StudentLoan(princ, apr_perc)
+        payment = princ + loan.calculate_single_month_interest()
+        loan.apply_payment(payment)
+        self.assertEqual(loan.principle, 0)
+        self.assertEqual(loan.calculate_single_month_interest(), 0)
 
     def test_loan_class_has_last_payment_details_method(self):
         """StudentLoan class has last_payment_details method."""

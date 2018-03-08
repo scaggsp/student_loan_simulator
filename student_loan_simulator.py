@@ -10,15 +10,21 @@ class StudentLoan:
         self.apr = apr
 
     def calculate_single_month_interest(self):
-        """Calculate the compound interest accrued over a single period."""
+        """Calculate and return the interest accrued over a single period."""
         apr_dec = self.apr / 100  # annual interest rate (decimal)
         monthesPerYear = 12
         interest = self.principle * (1 + (apr_dec / monthesPerYear)) - self.principle
         return interest
 
     def apply_payment(self, payment):
-        self.last_payment_details["payment"] = payment
         interest = self.calculate_single_month_interest()
+        if payment > self.principle + interest:
+            raise OverpaymentException("Over Payment")
+        self.last_payment_details["payment"] = payment
         self.last_payment_details["InterestPaid"] = interest
         self.last_payment_details["principleReduction"] = payment - interest
-        self.principle -= payment - interest
+        self.principle -= self.last_payment_details["principleReduction"]
+
+class OverpaymentException(Exception):
+    """The payment is greater than the payoff value of the loan."""
+    pass
