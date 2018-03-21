@@ -5,9 +5,10 @@ class StudentLoan:
     """Defines a student loan."""
     last_payment_details = {"payment": 0, "principleReduction": 0, "InterestPaid": 0}
 
-    def __init__(self, principle, apr):
+    def __init__(self, principle, apr, minimum_payment):
         self.principle = principle
         self.apr = apr
+        self.minimum_payment = minimum_payment
 
     def calculate_single_month_interest(self):
         """Calculate and return the interest accrued over a single period."""
@@ -18,6 +19,8 @@ class StudentLoan:
 
     def apply_payment(self, payment):
         """Apply a payment to the loan."""
+        if payment < self.minimum_payment:
+            raise UnderpaymentException("Must pay minimum")
         interest = self.calculate_single_month_interest()
         if payment > self.principle + interest:
             raise OverpaymentException("Over Payment")
@@ -28,4 +31,8 @@ class StudentLoan:
 
 class OverpaymentException(Exception):
     """The payment is greater than the payoff value of the loan."""
+    pass
+
+class UnderpaymentException(Exception):
+    """The payment is lower than the minimum required payment of the loan."""
     pass
