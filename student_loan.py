@@ -19,11 +19,12 @@ class StudentLoan:
 
     def apply_payment(self, payment):
         """Apply a payment to the loan."""
-        if payment < self.minimum_payment:
-            raise UnderpaymentException("Must pay minimum")
         interest = self.calculate_single_month_interest()
-        if payment > self.principle + interest:
+        payoff = self.principle + interest
+        if payment > payoff:
             raise OverpaymentException("Over Payment")
+        if (payment < self.minimum_payment) & (self.minimum_payment < payoff):
+            raise UnderpaymentException("Must pay minimum")
         self.last_payment_details["payment"] = payment
         self.last_payment_details["InterestPaid"] = interest
         self.last_payment_details["principleReduction"] = payment - interest

@@ -123,6 +123,18 @@ class TestStudentLoanClass(unittest.TestCase):
         min_pay = payment * 2 # minimum payment required for the loan
         loan = StudentLoan(princ, apr_perc, min_pay)
         self.assertRaises(UnderpaymentException, loan.apply_payment, payment)
+        
+    def test_loan_under_pay_payoff(self):
+        """Payment is payoff value but less than the minimum payment."""
+        princ = 10     # starting principle
+        apr_perc = 12  # annual interest rate (percentage)
+        min_pay = 50   # minimum payment required for the loan
+        loan = StudentLoan(princ, apr_perc, min_pay)
+        payment = princ + loan.calculate_single_month_interest()
+        loan.apply_payment(payment)
+        self.assertEqual(loan.principle, 0)
+        self.assertEqual(loan.calculate_single_month_interest(), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
