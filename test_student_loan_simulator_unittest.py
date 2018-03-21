@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""This script performs unit testing on the student_loan_simulator script."""
+"""This script performs unit testing on the student_loan script."""
 
 import unittest
-from student_loan_simulator import StudentLoan, OverpaymentException, UnderpaymentException
+from student_loan import StudentLoan, OverpaymentException, UnderpaymentException
 
 DUMMY_PRINCIPLE = 0
 DUMMY_APR = 0

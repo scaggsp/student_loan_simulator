@@ -5,7 +5,7 @@
     <ProjectGuid>3b3f997e-47c7-4e09-9c43-ef207148a0ae</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>..\..\..\test_student_loan_simulator_unittest.py</StartupFile>
-    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
+    <SearchPath>..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator;..\..\..\..\student_loan_simulator</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>StudentLoanSimulator</Name>
@@ -20,8 +20,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\..\student_loan_simulator.py">
-      <Link>student_loan_simulator.py</Link>
+    <Compile Include="..\..\..\student_loan.py">
+      <Link>student_loan.py</Link>
     </Compile>
     <Compile Include="..\..\..\test_student_loan_simulator_unittest.py">
       <Link>test_student_loan_simulator_unittest.py</Link>
