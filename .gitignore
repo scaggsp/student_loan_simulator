@@ -69,6 +69,10 @@ MANIFEST
 # Visual Studio #
 #################
 *.suo
+*.cache
+*.lock
+obj/
+.vs/
 
 # PyInstaller #
 #  Usually these files are written by a python script from a template #
@@ -166,7 +170,3 @@ venv.bak/
 # mypy #
 ########
 .mypy_cache/
-*.cache
-*.lock
-student_loan_simulator/student_loan_simulator/obj/
-student_loan_simulator/.vs/
