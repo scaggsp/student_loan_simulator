@@ -73,6 +73,7 @@ MANIFEST
 *.lock
 obj/
 .vs/
+packages/
 
 # PyInstaller #
 #  Usually these files are written by a python script from a template #
@@ -170,5 +171,8 @@ venv.bak/
 # mypy #
 ########
 .mypy_cache/
+
+# Project Specific #
+####################
 StudentLoanSimulator/StudentLoanSimulator/bin/
 StudentLoanSimulator/StudentLoanSimulatorTests/bin/
