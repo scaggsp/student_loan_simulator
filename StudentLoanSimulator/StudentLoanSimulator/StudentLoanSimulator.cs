@@ -21,10 +21,30 @@ namespace StudentLoanSimulator
         {
             LenderName = lenderName;
             AccountNumber = accountNumber;
-            APR = aPR;
+
+            /// APR cannot be greater than 100%
+            /// While this is not technically incorrect, it likely occured 
+            /// because the APR was a percentage instead of decimal 
+            /// (3.25% is 0.0325 not 3.25)
+            if (aPR >= 1.0)
+            {
+                throw new APROutOfRange();
+            }
+            else
+            {
+                APR = aPR;
+            }
+            
             MinPayment = minPayment;
             PaymentStartDate = paymentStartDate;
             Principle = startingPrinciple;
+        }
+
+        public class APROutOfRange : Exception
+        {
+            public APROutOfRange()
+            {
+            }
         }
     }
 }

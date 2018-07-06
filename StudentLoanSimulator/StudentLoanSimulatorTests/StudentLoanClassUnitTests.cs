@@ -7,14 +7,16 @@ namespace StudentLoanSimulatorTests
 {
     [TestClass]
     public class StudentLoanClassUnitTests
-    { 
+    {
+        #region Loan Details
+
         /// <summary>
         /// Student Loan Class has LenderName field
         /// </summary>
         [TestMethod]
         public void TestHasLenderNameProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("LenderName");
@@ -32,7 +34,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestHasAccountNumberProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("AccountNumber");
@@ -50,7 +52,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestHasAPRProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("APR");
@@ -63,12 +65,23 @@ namespace StudentLoanSimulatorTests
         }
 
         /// <summary>
+        /// APR cannot be greater than 100%
+        /// While this is not technically incorrect, it likely occured because the APR was a percentage instead of decimal (3.25% is 0.0325 not 3.25)
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.APROutOfRange))]
+        public void TestAPROutOfRange()
+        {
+            StudentLoan aPROutOfRangeLoan = NewSafeLoan(DateTime.Now, testAPR: 1.0325);
+        }
+
+        /// <summary>
         /// Student Loan Class has MinPayment field
         /// </summary>
         [TestMethod]
         public void TestHasMinPaymentProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("MinPayment");
@@ -86,7 +99,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestHasPaymentStartDateProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("PaymentStartDate");
@@ -104,7 +117,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestHasPrincipleProperty()
         {
-            // Get the Type object corresponding to MyClass.
+            // Get the Type object corresponding to StudentLoan.
             Type studentLoanType = typeof(StudentLoan);
             // Get the PropertyInfo object by passing the property name.
             PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("Principle");
@@ -116,9 +129,11 @@ namespace StudentLoanSimulatorTests
             Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(double), "Principle property is an incorrect type");
         }
 
+        #endregion
+
         /// <summary>
-        /// Student Loan Class consturcor is called without throwing an exception.
-        /// The constuctor values are read back out of the new object for correctness.
+        /// Student Loan Class consturcor is called without throwing an exception
+        /// The constuctor values are read back out of the new object for correctness
         /// </summary>
         [TestMethod]
         public void TestConstructor()
