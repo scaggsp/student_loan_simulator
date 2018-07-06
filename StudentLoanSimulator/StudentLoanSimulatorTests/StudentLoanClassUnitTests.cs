@@ -61,7 +61,7 @@ namespace StudentLoanSimulatorTests
             Assert.AreNotEqual(null, studentLoanPropInfo, "APR property does not exist in StudentLoan Class");
 
             // Verify property has the correct type
-            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(double), "APR property is an incorrect type");
+            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(decimal), "APR property is an incorrect type");
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.APROutOfRange))]
         public void TestAPROutOfRange()
         {
-            StudentLoan aPROutOfRangeLoan = NewSafeLoan(DateTime.Now, testAPR: 1.0325);
+            StudentLoan aPROutOfRangeLoan = NewSafeLoan(DateTime.Now, testAPR: 1.0325m);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace StudentLoanSimulatorTests
             Assert.AreNotEqual(null, studentLoanPropInfo, "MinPayment property does not exist in StudentLoan Class");
 
             // Verify property has the correct type
-            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(double), "MinPayment property is an incorrect type");
+            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(decimal), "MinPayment property is an incorrect type");
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace StudentLoanSimulatorTests
             Assert.AreNotEqual(null, studentLoanPropInfo, "Principle property does not exist in StudentLoan Class");
 
             // Verify property has the correct type
-            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(double), "Principle property is an incorrect type");
+            Assert.AreEqual(studentLoanPropInfo.PropertyType, typeof(decimal), "Principle property is an incorrect type");
         }
 
         #endregion
@@ -140,10 +140,10 @@ namespace StudentLoanSimulatorTests
         {
             String testLenderName = "testName";
             String testAccountNumber = "ABC-123456";
-            double testAPR = 0.0325;
-            double testMinPayment = 25.73;
+            decimal testAPR = 0.0325m;
+            decimal testMinPayment = 25.73m;
             DateTime testPaymentStartDate = DateTime.Now;
-            double testStartingPrinciple = 4001.00;
+            decimal testStartingPrinciple = 4001.00m;
 
             StudentLoan testStudentLoan = new StudentLoan(testLenderName,
                                                           testAccountNumber,
@@ -165,26 +165,79 @@ namespace StudentLoanSimulatorTests
 
         /// <summary>
         /// Last payment information can be retreived
-        /// The payment components need to specified the total payment, interest paid, and principle paid
         /// </summary>
+        [TestMethod]
+        public void TestHasLastPaymentObject()
+        {
+            // Get the Type object corresponding to StudentLoan.
+            Type studentLoanType = typeof(StudentLoan);
+            // Get the PropertyInfo object by passing the property name.
+            PropertyInfo studentLoanPropInfo = studentLoanType.GetProperty("LastPayment");
 
+            // Verify property exists
+            Assert.AreNotEqual(null, studentLoanPropInfo, "LastPayment property does not exist in StudentLoan Class");
+        }
+
+        /// <summary>
+        /// The last payment components need to specified the total payment, interest paid, and principle paid
+        /// </summary>
+        [TestMethod]
+        public void TestHasLastPaymentProperties()
+        {
+            // Get the Type object corresponding to StudentLoan.
+            Type studentLoanType = typeof(StudentLoan.LastPaymentDetails);
+            // Get the PropertyInfo object by passing the property name and verify property exists
+            PropertyInfo lastPaymentPropInfo;
+            lastPaymentPropInfo = studentLoanType.GetProperty("TotalPayment");
+            Assert.AreNotEqual(null, lastPaymentPropInfo, "TotalPayment property does not exist in LastPaymentDetails Class");
+
+            lastPaymentPropInfo = studentLoanType.GetProperty("InterestPayment");
+            Assert.AreNotEqual(null, lastPaymentPropInfo, "InterestPayment property does not exist in LastPaymentDetails Class");
+
+            lastPaymentPropInfo = studentLoanType.GetProperty("PrinciplePayment");
+            Assert.AreNotEqual(null, lastPaymentPropInfo, "PrinciplePayment property does not exist in LastPaymentDetails Class");
+
+            lastPaymentPropInfo = studentLoanType.GetProperty("PaymentDate");
+            Assert.AreNotEqual(null, lastPaymentPropInfo, "PaymentDate property does not exist in LastPaymentDetails Class");
+        }
 
         /// <summary>
         /// 1 Month's interest is correctly calculated for a loan
         /// The expected accrued interest value was detmined using an online interest calculator
         /// </summary>
+        /// <remarks>
+        /// This test will roll into the make payment test. The interest should not be accessible to an outside caller, but the interest portion of a payment is.
+        /// </remarks>
+        [TestMethod]
+        public void TestCalculateInterest()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
 
+            decimal testInterest = testPaymentLoan.CalcInterest(DateTime.Now.AddDays(30));
+            Assert.AreEqual(4.11m, testInterest);
 
-        /// <summary>
-        /// 1 Month's interest is correctly calculated for a loan
-        /// The expected accrued interest value was detmined using an online interest calculator
-        /// </summary>
-
+            testInterest = testPaymentLoan.CalcInterest(DateTime.Now.AddDays(60));
+            Assert.AreEqual(8.22m, testInterest);
+        }
 
         /// <summary>
         /// Payments applied to StudentLoan reduces the principle correctly
+        /// Every 73 days, the accrued interest results in an integer. This makes the principle reduction math easier.
         /// </summary>
+        /// <remarks>
+        /// The date of payment will later be removed as unlocking payments will require the date.
+        /// </remarks>
+        [TestMethod]
+        public void TestPaymentReducesPrinciple()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
 
+            testPaymentLoan.MakePayment(DateTime.Now.AddDays(73), 30.0m);
+            // expected accrued interest = 10.0
+            // 30.0 payment - 10.0 interest = 20.0 principle reduction
+            Assert.AreEqual(20.0m, testPaymentLoan.LastPayment.PrinciplePayment);
+
+        }
         /// <summary>
         /// Payments can only be made when payments are unlocked
         /// Payment attempts when payments not unlocked returns exception
@@ -203,12 +256,12 @@ namespace StudentLoanSimulatorTests
         /// This allows tests to isolate manipulated values which intentionally trigger an exception
         /// </summary>
         private StudentLoan NewSafeLoan(DateTime testPaymentStartDate,
-                                        String testLenderName = "Safe Loan",
-                                        String testAccountNumber = "TEST-SAFE",
-                                        double testAPR = 0.0325,
-                                        double testMinPayment = 10.0,
-                                        double testStartingPrinciple = 50.0
-                                        )
+                                    String testLenderName = "Safe Loan",
+                                    String testAccountNumber = "TEST-SAFE",
+                                    decimal testAPR = 0.0325m,
+                                    decimal testMinPayment = 10.0m,
+                                    decimal testStartingPrinciple = 50.0m
+                                    )
         {
             StudentLoan safeLoan = new StudentLoan(testLenderName,
                                                    testAccountNumber,
@@ -221,6 +274,29 @@ namespace StudentLoanSimulatorTests
             return safeLoan;
         }
 
+        /// <summary>
+        /// Sucessfully creates a StudentLoan object with values that are easy to work with when testing loan payments
+        /// </summary>
+        private StudentLoan NewPaymentLoan()
+        {
+            String testLenderName = "Payment Loan";
+            String testAccountNumber = "TEST-454590";
+            decimal testAPR = 0.05m;
+            decimal testMinPayment = 10.61m;
+            DateTime testPaymentStartDate = DateTime.Now;
+            decimal testStartingPrinciple = 1000.00m;
+
+            StudentLoan paymentLoan = new StudentLoan(testLenderName,
+                                                          testAccountNumber,
+                                                          testAPR,
+                                                          testMinPayment,
+                                                          testPaymentStartDate,
+                                                          testStartingPrinciple
+                                                          );
+
+
+            return paymentLoan;
+        }
         #endregion
     }
 }
