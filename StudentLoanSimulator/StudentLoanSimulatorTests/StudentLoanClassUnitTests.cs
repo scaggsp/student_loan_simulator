@@ -160,5 +160,67 @@ namespace StudentLoanSimulatorTests
             Assert.AreEqual(testPaymentStartDate, testStudentLoan.PaymentStartDate);
             Assert.AreEqual(testStartingPrinciple, testStudentLoan.Principle);
         }
+
+        #region Make a Payment
+
+        /// <summary>
+        /// Last payment information can be retreived
+        /// The payment components need to specified the total payment, interest paid, and principle paid
+        /// </summary>
+
+
+        /// <summary>
+        /// 1 Month's interest is correctly calculated for a loan
+        /// The expected accrued interest value was detmined using an online interest calculator
+        /// </summary>
+
+
+        /// <summary>
+        /// 1 Month's interest is correctly calculated for a loan
+        /// The expected accrued interest value was detmined using an online interest calculator
+        /// </summary>
+
+
+        /// <summary>
+        /// Payments applied to StudentLoan reduces the principle correctly
+        /// </summary>
+
+        /// <summary>
+        /// Payments can only be made when payments are unlocked
+        /// Payment attempts when payments not unlocked returns exception
+        /// </summary>
+
+        /// <summary>
+        /// Locking payments verifies the mimimum payment was made this month
+        /// </summary>
+
+        #endregion
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Sucessfully creates a StudentLoan object with safe values
+        /// This allows tests to isolate manipulated values which intentionally trigger an exception
+        /// </summary>
+        private StudentLoan NewSafeLoan(DateTime testPaymentStartDate,
+                                        String testLenderName = "Safe Loan",
+                                        String testAccountNumber = "TEST-SAFE",
+                                        double testAPR = 0.0325,
+                                        double testMinPayment = 10.0,
+                                        double testStartingPrinciple = 50.0
+                                        )
+        {
+            StudentLoan safeLoan = new StudentLoan(testLenderName,
+                                                   testAccountNumber,
+                                                   testAPR,
+                                                   testMinPayment,
+                                                   testPaymentStartDate,
+                                                   testStartingPrinciple
+                                                   );
+
+            return safeLoan;
+        }
+
+        #endregion
     }
 }
