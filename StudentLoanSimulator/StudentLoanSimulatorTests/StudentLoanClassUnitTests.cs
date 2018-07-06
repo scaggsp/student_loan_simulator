@@ -69,7 +69,7 @@ namespace StudentLoanSimulatorTests
         /// While this is not technically incorrect, it likely occured because the APR was a percentage instead of decimal (3.25% is 0.0325 not 3.25)
         /// </summary>
         [TestMethod]
-        [ExpectedException(typeof(StudentLoan.APROutOfRange))]
+        [ExpectedException(typeof(StudentLoan.APROutOfRangeException))]
         public void TestAPROutOfRange()
         {
             StudentLoan aPROutOfRangeLoan = NewSafeLoan(DateTime.Now, testAPR: 1.0325m);
@@ -232,20 +232,71 @@ namespace StudentLoanSimulatorTests
         {
             StudentLoan testPaymentLoan = NewPaymentLoan();
 
+            // unlock payments first
+            testPaymentLoan.UnlockPayments();
+
             testPaymentLoan.MakePayment(DateTime.Now.AddDays(73), 30.0m);
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             Assert.AreEqual(20.0m, testPaymentLoan.LastPayment.PrinciplePayment);
-
         }
+
         /// <summary>
         /// Payments can only be made when payments are unlocked
         /// Payment attempts when payments not unlocked returns exception
         /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
+        public void TestLockedPayment()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            // apply an abitrary payment without unlocking payment
+            testPaymentLoan.MakePayment(DateTime.Now.AddDays(30), 30.0m);
+        }
+
+        /// <summary>
+        /// Attempting to unlock payments while payments already unlocked results in an exception
+        /// The payment lock triggers setup/closeout actions when transitioning. If a redundant unlock attempt is made, there is either an error in the calling function or the developer does not understand the intended payment flow
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
+        public void TestRedundantUnlockPayment()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            testPaymentLoan.UnlockPayments(); // unlock payment (sucessful)
+            testPaymentLoan.UnlockPayments(); // unlock payment (exception)
+        }
+
+        /// <summary>
+        /// Attempting to lock payments while payments already locked results in an exception
+        /// The payment lock triggers setup/closeout actions when transitioning. If a redundant lock attempt is made, there is either an error in the calling function or the developer does not understand the intended payment flow
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
+        public void TestRedundantLockPayment()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            testPaymentLoan.LockPayments(); // unlock payment (sucessful)
+            testPaymentLoan.LockPayments(); // unlock payment (exception)
+        }
 
         /// <summary>
         /// Locking payments verifies the mimimum payment was made this month
         /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.PaymentException))]
+        public void TestMinimumPaymentMade()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            testPaymentLoan.UnlockPayments(); // first unlock payments
+
+            // immediately lock payments again leaving the last total payment == 0
+            testPaymentLoan.LockPayments();
+        }
 
         #endregion
 

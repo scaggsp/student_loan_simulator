@@ -14,6 +14,7 @@ namespace StudentLoanSimulator
         public LastPaymentDetails LastPayment { get; set; }
 
         private decimal dailyInterest;
+        private PaymentLock paymentLock;
 
         public StudentLoan(String lenderName,
                            String accountNumber,
@@ -32,7 +33,7 @@ namespace StudentLoanSimulator
             /// (3.25% is 0.0325 not 3.25)
             if (aPR >= 1.0m)
             {
-                throw new APROutOfRange();
+                throw new APROutOfRangeException();
             }
             else
             {
@@ -44,7 +45,8 @@ namespace StudentLoanSimulator
             MinPayment = minPayment;
             PaymentStartDate = paymentStartDate;
             Principle = startingPrinciple;
-
+            
+            paymentLock = PaymentLock.PaymentsLocked;
             LastPayment = new LastPaymentDetails();
             LastPayment.PaymentDate = paymentStartDate;
         }
@@ -59,13 +61,49 @@ namespace StudentLoanSimulator
             return accruedInterest;
         }
 
-        public void MakePayment(DateTime paymentDate, decimal payment)
+        public void UnlockPayments()
         {
-            decimal interest = this.CalcInterest(paymentDate);
-
-            this.LastPayment.PrinciplePayment = (payment - interest);
+            if (paymentLock == PaymentLock.PaymentsLocked)
+            {
+                paymentLock = PaymentLock.PaymentsUnlocked;
+            }
+            else
+            {
+                throw new PaymentsLockException("Payments already unlocked! Please review the payment flow.");
+            }
         }
 
+        public void MakePayment(DateTime paymentDate, decimal payment)
+        {
+            if (paymentLock == PaymentLock.PaymentsLocked)
+            {
+                throw new PaymentsLockException("Payments Locked!");
+            }
+            else
+            {
+                decimal interest = this.CalcInterest(paymentDate);
+                LastPayment.PrinciplePayment = (payment - interest);
+            }
+        }
+
+        public void LockPayments()
+        {
+            if (paymentLock == PaymentLock.PaymentsUnlocked)
+            {
+                if (LastPayment.TotalPayment < MinPayment)
+                {
+                    throw new PaymentException("Minimum payment was not made!");
+                }
+                else
+                {
+                    paymentLock = PaymentLock.PaymentsLocked;
+                }
+            }
+            else
+            {
+                throw new PaymentsLockException("Payments already Locked! Please review the payment flow.");
+            }
+        }
 
         public class LastPaymentDetails
         {
@@ -75,11 +113,64 @@ namespace StudentLoanSimulator
             public DateTime PaymentDate { get; set; }
         }
 
-        public class APROutOfRange : Exception
+        private enum PaymentLock
         {
-            public APROutOfRange()
+            PaymentsLocked,
+            PaymentsUnlocked
+        }
+
+        #region Exceptions
+
+        public class APROutOfRangeException : Exception
+        {
+            public APROutOfRangeException()
+            {
+            }
+
+            public APROutOfRangeException(string message)
+                : base(message)
+            {
+            }
+
+            public APROutOfRangeException(string message, Exception inner)
+                : base(message, inner)
             {
             }
         }
+
+        public class PaymentsLockException : Exception
+        {
+            public PaymentsLockException()
+            {
+            }
+
+            public PaymentsLockException(string message)
+                : base(message)
+            {
+            }
+
+            public PaymentsLockException(string message, Exception inner)
+                : base(message, inner)
+            {
+            }
+        }
+
+        public class PaymentException : Exception
+        {
+            public PaymentException()
+            {
+            }
+
+            public PaymentException(string message)
+                : base(message)
+            {
+            }
+
+            public PaymentException(string message, Exception inner)
+                : base(message, inner)
+            {
+            }
+        }
+        #endregion
     }
 }
