@@ -439,9 +439,20 @@ namespace StudentLoanSimulatorTests
         /// Reducing the principle to 0 marks the loan paid off
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestPayOffLoan()
         {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
+
+            // verify the loan is not paid off yet
+            Assert.AreEqual(false, testPaymentLoan.PaidOff);
+
+            // apply a payment that pays off the loan
+            MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
+
+            // verify the loan is now paid off
+            Assert.AreEqual(true, testPaymentLoan.PaidOff);
+            CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 0m);
         }
 
         /// <summary>
@@ -451,9 +462,25 @@ namespace StudentLoanSimulatorTests
         /// It is not necessary to lock a paid off loan. Payment attempts after loan is paid off result in an exception
         /// </remarks>
         [TestMethod]
-        [Ignore]
         public void TestLockPaidOffLoan()
         {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
+
+            // apply a payment that leaves 1 penny in the loan
+            MakeLoanPayment(testPaymentLoan, (testPaymentLoan.PayoffAmount - 0.01m));
+
+            testPaymentLoan.LockPayments();
+
+            // unlock the loan again 2 days later
+            // the accrued interest on 1 penny is negligible
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(75)); // first unlock payments
+
+            // apply a payment that pays off the loan and verify it's paid off
+            MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
+            Assert.AreEqual(true, testPaymentLoan.PaidOff);
+
+            testPaymentLoan.LockPayments();
         }
 
         #endregion

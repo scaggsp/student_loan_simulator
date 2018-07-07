@@ -13,7 +13,8 @@ namespace StudentLoanSimulator
         public decimal Principle { get; private set; }
         public LastPaymentDetails LastPayment { get; set; }
 
-        public decimal PayoffAmount {
+        public decimal PayoffAmount
+        {
             get
             {
                 if (paymentLock == PaymentLock.PaymentsLocked)
@@ -26,6 +27,8 @@ namespace StudentLoanSimulator
                 }
             }
         }
+
+        public bool PaidOff { get { return (0m == Principle); } }
 
         private decimal dailyInterest;
         private PaymentLock paymentLock;
@@ -132,13 +135,13 @@ namespace StudentLoanSimulator
         {
             if (paymentLock == PaymentLock.PaymentsUnlocked)
             {
-                if (LastPayment.TotalPayment < MinPayment)
+                if ((true == PaidOff) || (LastPayment.TotalPayment >= MinPayment))
                 {
-                    throw new PaymentException("Minimum payment was not made!");
+                    paymentLock = PaymentLock.PaymentsLocked;
                 }
                 else
                 {
-                    paymentLock = PaymentLock.PaymentsLocked;
+                    throw new PaymentException("Minimum payment was not made!");
                 }
             }
             else
