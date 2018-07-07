@@ -5,6 +5,18 @@ using StudentLoanSimulator;
 
 namespace StudentLoanSimulatorTests
 {
+    /// <summary>
+    /// Unit tests of the StudentLoanSimulator class (i.e. Manage loan payments through the life of the loan)
+    /// </summary>
+    [TestClass]
+    public class StudentLoanSimulatorClassUnitTests
+    {
+
+    }
+
+    /// <summary>
+    /// Unit tests of the StudentLoan class
+    /// </summary>
     [TestClass]
     public class StudentLoanClassUnitTests
     {
