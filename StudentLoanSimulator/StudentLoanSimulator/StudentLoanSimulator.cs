@@ -13,6 +13,20 @@ namespace StudentLoanSimulator
         public decimal Principle { get; private set; }
         public LastPaymentDetails LastPayment { get; set; }
 
+        public decimal PayoffAmount {
+            get
+            {
+                if (paymentLock == PaymentLock.PaymentsLocked)
+                {
+                    throw new PaymentsLockException("Payments Locked!");
+                }
+                else
+                {
+                    return (Principle + accruedInterest);
+                }
+            }
+        }
+
         private decimal dailyInterest;
         private PaymentLock paymentLock;
         private decimal accruedInterest;
@@ -76,6 +90,10 @@ namespace StudentLoanSimulator
             if (paymentLock == PaymentLock.PaymentsLocked)
             {
                 throw new PaymentsLockException("Payments Locked!");
+            }
+            else if (payment > PayoffAmount)
+            {
+                throw new PaymentException("Cannot overpay a loan! Payment will reduce principle < 0.");
             }
             else
             {

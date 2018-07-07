@@ -396,13 +396,43 @@ namespace StudentLoanSimulatorTests
         }
 
         /// <summary>
+        /// Attempting to get the payoff amount when payment is locked throws an exception
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
+        public void TestLockedPayoffAmount()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+            // assume new loan's payments are locked 
+            decimal payoffAmount = testPaymentLoan.PayoffAmount;
+        }
+
+        /// <summary>
+        /// The loan is able return a payment amount that would pay off the loan (principle + interest)
+        /// </summary>
+        [TestMethod]
+        public void TestPayoffAmount()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
+
+            // expected accrued interest = 10.0
+            // payoff amount = 1000.0 starting principle + 10.0 interest
+            Assert.AreEqual(1010.0m, testPaymentLoan.PayoffAmount);
+        }
+
+        /// <summary>
         /// Payments which reduce the principle less than 0 throw an exception
         /// This also covers the case of making a payment on a loan that's paid off
         /// </summary>
         [TestMethod]
-        [Ignore]
+        [ExpectedException(typeof(StudentLoan.PaymentException))]
         public void TestCannotOverpayLoan()
         {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
+            // make a payment significantly greater than the loan principle
+            MakeLoanPayment(testPaymentLoan, 100000.0m);
         }
 
         /// <summary>
@@ -425,8 +455,6 @@ namespace StudentLoanSimulatorTests
         public void TestLockPaidOffLoan()
         {
         }
-
-
 
         #endregion
 
