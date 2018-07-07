@@ -4,18 +4,18 @@ namespace StudentLoanSimulator
 {
     public class StudentLoan
     {
-        public String LenderName { get; set; }
-        public String AccountNumber { get; set; }
-        public decimal APR { get; set; }
-        public decimal MinPayment { get; set; }
-        public DateTime PaymentStartDate { get; set; }
-        public decimal Principle { get; set; }
+        public String LenderName { get; }
+        public String AccountNumber { get; }
+        public decimal APR { get; }
+        public decimal MinPayment { get; }
+        public DateTime PaymentStartDate { get; }
 
+        public decimal Principle { get; private set; }
         public LastPaymentDetails LastPayment { get; set; }
 
         private decimal dailyInterest;
         private PaymentLock paymentLock;
-        public decimal AccruedInterest { get; set; }
+        private decimal accruedInterest;
 
 
         public StudentLoan(String lenderName,
@@ -53,21 +53,16 @@ namespace StudentLoanSimulator
             LastPayment.PaymentDate = paymentStartDate;
         }
 
-        public decimal CalcInterest(DateTime paymentDate)
-        {
-            decimal daysSinceLastPayment = (paymentDate - LastPayment.PaymentDate).Days;
 
-            decimal accruedInterest = Principle * (dailyInterest * daysSinceLastPayment);
-            accruedInterest = Math.Round(accruedInterest, 2); // round to two decimal places
-
-            return accruedInterest;
-        }
 
         public void UnlockPayments(DateTime paymentDate)
         {
             if (paymentLock == PaymentLock.PaymentsLocked)
             {
-                AccruedInterest = CalcInterest(paymentDate);
+                ClearLastPaymentDetails();
+                accruedInterest = CalcInterest(paymentDate);
+                // CalcInterest uses LastPayment.PaymentDate => calculate interest before changing date
+                LastPayment.PaymentDate = paymentDate;
                 paymentLock = PaymentLock.PaymentsUnlocked;
             }
             else
@@ -91,18 +86,18 @@ namespace StudentLoanSimulator
                 decimal interestPaid = 0.0m;
                 decimal principlePaid = 0.0m;
 
-                if (payment < AccruedInterest)
+                if (payment < accruedInterest)
                 {
                     // payment only covers interest
                     interestPaid = payment;
-                    AccruedInterest -= payment;
+                    accruedInterest -= payment;
                 }
                 else
                 {
                     // pay interest first
-                    interestPaid = AccruedInterest;
-                    payment -= AccruedInterest;
-                    AccruedInterest = 0.0m;
+                    interestPaid = accruedInterest;
+                    payment -= accruedInterest;
+                    accruedInterest = 0.0m;
 
                     // remaining payment reduces principle
                     principlePaid = payment;
@@ -133,6 +128,27 @@ namespace StudentLoanSimulator
                 throw new PaymentsLockException("Payments already Locked! Please review the payment flow.");
             }
         }
+
+        #region Private Functions
+
+        private decimal CalcInterest(DateTime paymentDate)
+        {
+            decimal daysSinceLastPayment = (paymentDate - LastPayment.PaymentDate).Days;
+
+            decimal accruedInterest = Principle * (dailyInterest * daysSinceLastPayment);
+            accruedInterest = Math.Round(accruedInterest, 2); // round to two decimal places
+
+            return accruedInterest;
+        }
+
+        private void ClearLastPaymentDetails()
+        {
+            LastPayment.TotalPayment = 0m;
+            LastPayment.InterestPayment = 0m;
+            LastPayment.PrinciplePayment = 0m;
+        }
+
+        #endregion
 
         public class LastPaymentDetails
         {
