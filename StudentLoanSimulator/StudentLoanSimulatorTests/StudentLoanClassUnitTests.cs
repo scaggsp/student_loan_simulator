@@ -483,6 +483,18 @@ namespace StudentLoanSimulatorTests
             testPaymentLoan.LockPayments();
         }
 
+        /// <summary>
+        /// Loan is able to signal if start date has been reached and the loan needs to start being repaid
+        /// </summary>
+        [TestMethod]
+        public void TestLoanInRepayment()
+        {
+            StudentLoan testStudentLoan = NewSafeLoan(DateTime.Now.AddYears(1));
+
+            Assert.AreEqual(false, testStudentLoan.InRepayment(DateTime.Now));
+            Assert.AreEqual(true, testStudentLoan.InRepayment(DateTime.Now.AddYears(2)));
+        }
+
         #endregion
 
         #region Helper Methods

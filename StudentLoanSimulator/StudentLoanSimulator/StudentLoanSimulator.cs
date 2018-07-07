@@ -27,13 +27,16 @@ namespace StudentLoanSimulator
                 }
             }
         }
-
         public bool PaidOff { get { return (0m == Principle); } }
+
+        public bool InRepayment(DateTime date)
+        {
+            return (date >= PaymentStartDate);
+        }
 
         private decimal dailyInterest;
         private PaymentLock paymentLock;
         private decimal accruedInterest;
-
 
         public StudentLoan(String lenderName,
                            String accountNumber,
@@ -69,8 +72,6 @@ namespace StudentLoanSimulator
             LastPayment = new LastPaymentDetails();
             LastPayment.PaymentDate = paymentStartDate;
         }
-
-
 
         public void UnlockPayments(DateTime paymentDate)
         {
