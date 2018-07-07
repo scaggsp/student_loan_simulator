@@ -155,7 +155,7 @@ namespace StudentLoanSimulator
 
         private decimal CalcInterest(DateTime paymentDate)
         {
-            decimal daysSinceLastPayment = (paymentDate - LastPayment.PaymentDate).Days;
+            decimal daysSinceLastPayment = (paymentDate.Date - LastPayment.PaymentDate.Date).Days;
 
             decimal accruedInterest = Principle * (dailyInterest * daysSinceLastPayment);
             accruedInterest = Math.Round(accruedInterest, 2); // round to two decimal places

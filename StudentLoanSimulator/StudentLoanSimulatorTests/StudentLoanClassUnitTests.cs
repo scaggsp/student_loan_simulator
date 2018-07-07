@@ -84,7 +84,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.APROutOfRangeException))]
         public void TestAPROutOfRange()
         {
-            StudentLoan aPROutOfRangeLoan = NewSafeLoan(DateTime.Now, testAPR: 1.0325m);
+            StudentLoan aPROutOfRangeLoan = NewSafeLoan(testAPR: 1.0325m);
         }
 
         /// <summary>
@@ -211,6 +211,40 @@ namespace StudentLoanSimulatorTests
 
             lastPaymentPropInfo = studentLoanType.GetProperty("PaymentDate");
             Assert.AreNotEqual(null, lastPaymentPropInfo, "PaymentDate property does not exist in LastPaymentDetails Class");
+        }
+
+        /// <summary>
+        /// The private function calculates daily interest correctly
+        /// </summary>
+        [TestMethod]
+        public void TestCalculateInterest()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan(testPaymentStartDate: DateTime.Now);
+            var privateObject = new PrivateObject(testPaymentLoan);
+
+            var interest = privateObject.Invoke("CalcInterest", DateTime.Now.AddDays(73));
+
+            Assert.AreEqual(10m, interest);
+        }
+
+        /// <summary>
+        /// Accrued interest is based on day boundries, not 24 hr days
+        /// </summary>
+        [TestMethod]
+        public void TestInterestBasedOnDayBoundries()
+        {
+            // payment start date is 1 hour from midnight (day boundry)
+            // principle and interest rate are very high so rounding does not hide behavior
+            DateTime loanStartDate = new DateTime(2018, 7, 1, 23, 0, 0);
+            StudentLoan testPaymentLoan = NewPaymentLoan(testPaymentStartDate: loanStartDate, testStartingPrinciple: 100000m, testAPR: 0.50m);
+
+            var privateObject = new PrivateObject(testPaymentLoan);
+
+            // payment date is 1am on the 73rd day => accrued interest should be 10000
+            // note: this is less than 73x 24hr days later. The interest is correct only if it's based on calendar days not 24hr days
+            var interest = privateObject.Invoke("CalcInterest", loanStartDate.AddDays(72).AddHours(2));
+
+            Assert.AreEqual(10000m, interest);
         }
 
         /// <summary>
@@ -501,7 +535,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestLoanInRepayment()
         {
-            StudentLoan testStudentLoan = NewSafeLoan(DateTime.Now.AddYears(1));
+            StudentLoan testStudentLoan = NewSafeLoan(testPaymentStartDate: DateTime.Now.AddYears(1));
 
             Assert.AreEqual(false, testStudentLoan.InRepayment(DateTime.Now));
             Assert.AreEqual(true, testStudentLoan.InRepayment(DateTime.Now.AddYears(2)));
@@ -515,19 +549,30 @@ namespace StudentLoanSimulatorTests
         /// Sucessfully creates a StudentLoan object with safe values
         /// This allows tests to isolate manipulated values which intentionally trigger an exception
         /// </summary>
-        private StudentLoan NewSafeLoan(DateTime testPaymentStartDate,
-                                    String testLenderName = "Safe Loan",
+        private StudentLoan NewSafeLoan(String testLenderName = "Safe Loan",
                                     String testAccountNumber = "TEST-SAFE",
                                     decimal testAPR = 0.0325m,
                                     decimal testMinPayment = 10.0m,
+                                    DateTime? testPaymentStartDate = null,
                                     decimal testStartingPrinciple = 50.0m
                                     )
         {
+            DateTime testPaymentStartDateParam;
+
+            if (testPaymentStartDate == null)
+            {
+                testPaymentStartDateParam = DateTime.Now;
+            }
+            else
+            {
+                testPaymentStartDateParam = (DateTime)testPaymentStartDate;
+            }
+
             StudentLoan safeLoan = new StudentLoan(testLenderName,
                                                    testAccountNumber,
                                                    testAPR,
                                                    testMinPayment,
-                                                   testPaymentStartDate,
+                                                   testPaymentStartDateParam,
                                                    testStartingPrinciple
                                                    );
 
@@ -537,20 +582,30 @@ namespace StudentLoanSimulatorTests
         /// <summary>
         /// Sucessfully creates a StudentLoan object with values that are easy to work with when testing loan payments
         /// </summary>
-        private StudentLoan NewPaymentLoan()
+        private StudentLoan NewPaymentLoan(String testLenderName = "Payment Loan",
+                                           String testAccountNumber = "TEST-454590",
+                                           decimal testAPR = 0.05m,
+                                           decimal testMinPayment = 10.61m,
+                                           DateTime? testPaymentStartDate = null,
+                                           decimal testStartingPrinciple = 1000.00m
+                                          )
         {
-            String testLenderName = "Payment Loan";
-            String testAccountNumber = "TEST-454590";
-            decimal testAPR = 0.05m;
-            decimal testMinPayment = 10.61m;
-            DateTime testPaymentStartDate = DateTime.Now;
-            decimal testStartingPrinciple = 1000.00m;
+            DateTime testPaymentStartDateParam;
+
+            if (testPaymentStartDate == null)
+            {
+                testPaymentStartDateParam = DateTime.Now;
+            }
+            else
+            {
+                testPaymentStartDateParam = (DateTime)testPaymentStartDate;
+            }
 
             StudentLoan paymentLoan = new StudentLoan(testLenderName,
                                                           testAccountNumber,
                                                           testAPR,
                                                           testMinPayment,
-                                                          testPaymentStartDate,
+                                                          testPaymentStartDateParam,
                                                           testStartingPrinciple
                                                           );
 
