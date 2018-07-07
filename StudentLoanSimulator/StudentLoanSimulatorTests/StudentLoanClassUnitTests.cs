@@ -224,21 +224,119 @@ namespace StudentLoanSimulatorTests
         /// Payments applied to StudentLoan reduces the principle correctly
         /// Every 73 days, the accrued interest results in an integer. This makes the principle reduction math easier.
         /// </summary>
-        /// <remarks>
-        /// The date of payment will later be removed as unlocking payments will require the date.
-        /// </remarks>
         [TestMethod]
         public void TestPaymentReducesPrinciple()
         {
             StudentLoan testPaymentLoan = NewPaymentLoan();
 
             // unlock payments first
-            testPaymentLoan.UnlockPayments();
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
 
-            testPaymentLoan.MakePayment(DateTime.Now.AddDays(73), 30.0m);
+            testPaymentLoan.MakePayment(30.0m);
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
+            // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
+            Assert.AreEqual(980.0m, testPaymentLoan.Principle);
+        }
+
+        /// <summary>
+        /// Payments applied to StudentLoan pays interest first
+        /// </summary>
+        [TestMethod]
+        public void TestPaymentReducesAccruedInterestFirst()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            // unlock payments first
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
+            Assert.AreEqual(10.0m, testPaymentLoan.AccruedInterest);
+
+            testPaymentLoan.MakePayment(4.0m);
+            // pay less than total accrued interest
+            // only interest should be reduced, the principle should remain unchanged
+            Assert.AreEqual(1000.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(6.0m, testPaymentLoan.AccruedInterest);
+        }
+
+        /// <summary>
+        /// Payments reduce the principle after interest paid
+        /// </summary>
+        [TestMethod]
+        public void TestPaymentReducesPrincipleAfterInterest()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            // unlock payments first
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
+
+            testPaymentLoan.MakePayment(30.0m);
+            // expected accrued interest = 10.0
+            // 30.0 payment - 10.0 interest = 20.0 principle reduction
+            // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
+            Assert.AreEqual(980.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(0.0m, testPaymentLoan.AccruedInterest);
+        }
+
+        /// <summary>
+        /// Payments reduce the principle after interest paid
+        /// </summary>
+        [TestMethod]
+        public void TestExtraPaymentFurtherReducesPrinciple()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            // unlock payments first
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
+
+            testPaymentLoan.MakePayment(30.0m);
+            // expected accrued interest = 10.0
+            // 30.0 payment - 10.0 interest = 20.0 principle reduction
+            // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
+            Assert.AreEqual(980.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(0.0m, testPaymentLoan.AccruedInterest);
+
+            // apply an extra payment after interest paid
+            testPaymentLoan.MakePayment(30.0m);
+            // expected accrued interest = 0.0
+            // 30.0 payment - 0.0 interest = 30.0 principle reduction
+            // 980.0 starting principle - 30.0 principle reduction = 950.0 remaining principle
+            Assert.AreEqual(950.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(0.0m, testPaymentLoan.AccruedInterest);
+        }
+
+        /// <summary>
+        /// Payments are detailed in LastPayment
+        /// </summary>
+        [TestMethod]
+        public void TestPaymentDetails()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            // unlock payments first
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
+
+            testPaymentLoan.MakePayment(30.0m);
+            // expected accrued interest = 10.0
+            // 30.0 payment - 10.0 interest = 20.0 principle reduction
+            // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
+            Assert.AreEqual(980.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(0.0m, testPaymentLoan.AccruedInterest);
+
+            Assert.AreEqual(30.0m, testPaymentLoan.LastPayment.TotalPayment);
+            Assert.AreEqual(10.0m, testPaymentLoan.LastPayment.InterestPayment);
             Assert.AreEqual(20.0m, testPaymentLoan.LastPayment.PrinciplePayment);
+
+            // apply an extra payment after interest paid
+            testPaymentLoan.MakePayment(30.0m);
+            // expected accrued interest = 0.0
+            // 30.0 payment - 0.0 interest = 30.0 principle reduction
+            // 980.0 starting principle - 30.0 principle reduction = 950.0 remaining principle
+            Assert.AreEqual(950.0m, testPaymentLoan.Principle);
+            Assert.AreEqual(0.0m, testPaymentLoan.AccruedInterest);
+
+            Assert.AreEqual(60.0m, testPaymentLoan.LastPayment.TotalPayment);
+            Assert.AreEqual(10.0m, testPaymentLoan.LastPayment.InterestPayment);
+            Assert.AreEqual(50.0m, testPaymentLoan.LastPayment.PrinciplePayment);
         }
 
         /// <summary>
@@ -252,7 +350,7 @@ namespace StudentLoanSimulatorTests
             StudentLoan testPaymentLoan = NewPaymentLoan();
 
             // apply an abitrary payment without unlocking payment
-            testPaymentLoan.MakePayment(DateTime.Now.AddDays(30), 30.0m);
+            testPaymentLoan.MakePayment(30.0m);
         }
 
         /// <summary>
@@ -265,8 +363,8 @@ namespace StudentLoanSimulatorTests
         {
             StudentLoan testPaymentLoan = NewPaymentLoan();
 
-            testPaymentLoan.UnlockPayments(); // unlock payment (sucessful)
-            testPaymentLoan.UnlockPayments(); // unlock payment (exception)
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // unlock payment (sucessful)
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // unlock payment (exception)
         }
 
         /// <summary>
@@ -284,6 +382,21 @@ namespace StudentLoanSimulatorTests
         }
 
         /// <summary>
+        /// Unlocking payments calculates the accrued intest since the last payment
+        /// </summary>
+        /// <remarks>
+        /// This is a temporary test to verify unlock functionality. Future testing to ingetegrate this test by checking a payment's details i.e. accrued interest was calculated correctly by checking the last payment interest component.
+        /// </remarks>
+        [TestMethod]
+        public void TestAccrueInterest()
+        {
+            StudentLoan testPaymentLoan = NewPaymentLoan();
+
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
+            Assert.AreEqual(10.0m, testPaymentLoan.AccruedInterest);
+        }
+
+        /// <summary>
         /// Locking payments verifies the mimimum payment was made this month
         /// </summary>
         [TestMethod]
@@ -292,7 +405,7 @@ namespace StudentLoanSimulatorTests
         {
             StudentLoan testPaymentLoan = NewPaymentLoan();
 
-            testPaymentLoan.UnlockPayments(); // first unlock payments
+            testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
             // immediately lock payments again leaving the last total payment == 0
             testPaymentLoan.LockPayments();

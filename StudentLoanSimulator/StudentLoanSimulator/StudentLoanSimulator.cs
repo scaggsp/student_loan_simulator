@@ -15,6 +15,8 @@ namespace StudentLoanSimulator
 
         private decimal dailyInterest;
         private PaymentLock paymentLock;
+        public decimal AccruedInterest { get; set; }
+
 
         public StudentLoan(String lenderName,
                            String accountNumber,
@@ -61,10 +63,11 @@ namespace StudentLoanSimulator
             return accruedInterest;
         }
 
-        public void UnlockPayments()
+        public void UnlockPayments(DateTime paymentDate)
         {
             if (paymentLock == PaymentLock.PaymentsLocked)
             {
+                AccruedInterest = CalcInterest(paymentDate);
                 paymentLock = PaymentLock.PaymentsUnlocked;
             }
             else
@@ -73,7 +76,7 @@ namespace StudentLoanSimulator
             }
         }
 
-        public void MakePayment(DateTime paymentDate, decimal payment)
+        public void MakePayment(decimal payment)
         {
             if (paymentLock == PaymentLock.PaymentsLocked)
             {
@@ -81,8 +84,34 @@ namespace StudentLoanSimulator
             }
             else
             {
-                decimal interest = this.CalcInterest(paymentDate);
-                LastPayment.PrinciplePayment = (payment - interest);
+                // record total payment details
+                LastPayment.TotalPayment += payment;
+
+                // payment interest and principle component trackers
+                decimal interestPaid = 0.0m;
+                decimal principlePaid = 0.0m;
+
+                if (payment < AccruedInterest)
+                {
+                    // payment only covers interest
+                    interestPaid = payment;
+                    AccruedInterest -= payment;
+                }
+                else
+                {
+                    // pay interest first
+                    interestPaid = AccruedInterest;
+                    payment -= AccruedInterest;
+                    AccruedInterest = 0.0m;
+
+                    // remaining payment reduces principle
+                    principlePaid = payment;
+                    Principle -= principlePaid;
+                }
+
+                // record payment details
+                LastPayment.InterestPayment += interestPaid;
+                LastPayment.PrinciplePayment += principlePaid;
             }
         }
 
