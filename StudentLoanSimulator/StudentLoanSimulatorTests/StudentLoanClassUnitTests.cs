@@ -12,6 +12,160 @@ namespace StudentLoanSimulatorTests
     public class StudentLoanSimulatorClassUnitTests
     {
 
+        /// <summary>
+        /// Parse an XML file for a single loan's details
+        /// </summary>
+
+
+        /// <summary>
+        /// Parse an XML file for multiple loan details
+        /// </summary>
+
+
+        /// <summary>
+        /// Parse an XML file for payment dates and amounts pairs
+        /// </summary>
+
+
+        /// <summary>
+        /// From a list of loans, find the earliest start date
+        /// Set the "current" date to the earliest start date
+        /// </summary>
+
+
+        /// <summary>
+        /// Get a subset list of all loans in repayment and not paid off
+        /// </summary>
+
+
+        /// <summary>
+        /// If all loans are paid off, end simulation
+        /// </summary>
+
+
+        /// <summary>
+        /// Set the moneypot to the current date's pay cycle total payment amount
+        /// </summary>
+
+
+        /// <summary>
+        /// If the current date cannot determine this pay cycle's moneypot, throw an exception
+        /// </summary>
+
+
+        /// <summary>
+        /// If the subset list is empty and this pay cycle's moneypot != 0, throw exception
+        /// Payment of loans when they're not yet in repayment is not supported
+        /// </summary>
+
+
+        /// <summary>
+        /// Unlock payments for the only the subset of loans
+        /// </summary>
+
+
+        /// <summary>
+        /// Determine this pay cycle's total minimum payment required by the subset loan list
+        /// </summary>
+
+
+        /// <summary>
+        /// Determine this pay cycle's total minimum payment required when a loan's minimum payment is > it's payoff amount
+        /// i.e. when paying a loan's minimum payment will reduce the principle < 0
+        /// </summary>
+
+
+        /// <summary>
+        /// If the moneypot is < the minimum payments, throw an exception
+        /// </summary>
+
+
+        /// <summary>
+        /// Apply the mimimum payment to this pay cycle's loans
+        /// Each payment should reduce the moneypot appropriately
+        /// </summary>
+
+
+        /// <summary>
+        /// Paying off a loan when paying it's minimum payment locks payment and removes it from this pay cycle's loan list
+        /// </summary>
+
+
+        /// <summary>
+        /// Determine this pay cycle's extra payment amount
+        /// extra payment amount = moneypot - total minimum payments
+        /// </summary>
+
+
+        /// <summary>
+        /// Determine which loan of the subset of loans has the highest APR
+        /// </summary>
+
+
+        /// <summary>
+        /// Paying off a loan when making an extra payment locks payment and removes it from this pay cycle's loan list
+        /// </summary>
+
+
+        /// <summary>
+        /// Apply extra payments to loans
+        /// The first payment pays off an loan. The remaining moneypot is applied to the loan with the next highest APR
+        /// </summary>
+
+
+        /// <summary>
+        /// Paying off all the subset loans ends this pay cycle leaving the moneypot > 0
+        /// </summary>
+
+
+        /// <summary>
+        /// Lock payments for the only the subset of loans after all payments complete
+        /// </summary>
+
+
+        /// <summary>
+        /// Advance the "current" date ahead to the next payment date
+        /// </summary>
+
+
+        /// <summary>
+        /// Accept an optional directory parameter to specify the csv file location
+        /// </summary>
+
+
+        /// <summary>
+        /// Create a csv file that will record simple payment details
+        /// Only check that the header are correct. No payments will be included
+        /// </summary>
+
+
+        /// <summary>
+        /// Create a csv file that will record expanded payment details
+        /// Only check that the header are correct. No payments will be included
+        /// </summary>
+
+
+        /// <summary>
+        /// Add a payment to the simple payment file
+        /// </summary>
+
+
+        /// <summary>
+        /// Add a payment to the expanded payment file
+        /// </summary>
+
+
+        /// <summary>
+        /// Only loans whose last payment date == current date are recorded
+        /// All other loans record 0 for all payment details
+        /// </summary>
+
+
+        /// <summary>
+        /// Advance the "current" date ahead to the next payment date
+        /// </summary>
+        
+        
     }
 
     /// <summary>
