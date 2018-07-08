@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StudentLoanSimulator;
@@ -11,13 +12,16 @@ namespace StudentLoanSimulatorTests
     [TestClass]
     public class StudentLoanScheduleClassUnitTests
     {
+        // instance of unit test helper methods
+        UTestHelper UHelper = new UTestHelper();
+        List<ScheduledPayment> DummyPayments = new List<ScheduledPayment>();
 
         /// <summary>
         /// Parse an XML file for a single loan's details
         /// </summary>
         [TestMethod]
         [Ignore]
-        public void TestParseForSingleLoa()
+        public void TestParseForSingleLoan()
         {
         }
 
@@ -39,15 +43,50 @@ namespace StudentLoanSimulatorTests
         {
         }
 
+        /// <summary>
+        /// The StudentLoanSchedule constructor accepts a list of loans
+        /// </summary>
+        [TestMethod]
+        public void TestConstructorAcceptsListOfLoans()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            var fullListOfLoans = privateObject.GetField("fullListOfLoans");
+
+            Assert.AreEqual(listOfLoans, fullListOfLoans);
+        }
+
+        /// <summary>
+        /// If the StudentLoanSchedule constructor receives an empty loan list, throw an exception
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoanSchedule.ConstructorException))]
+        public void TestConstructorRejectsEmptyListOfLoans()
+        {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+        }
 
         /// <summary>
         /// From a list of loans, find the earliest start date
         /// Set the "current" date to the earliest start date
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestFindEarliestStartDate()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            DateTime expectedStartDate = new DateTime(2016, 1, 1);
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            var startingDate = privateObject.GetField("currentPayDate");
+
+            Assert.AreEqual(expectedStartDate, startingDate);
         }
 
 
@@ -55,9 +94,26 @@ namespace StudentLoanSimulatorTests
         /// Get a subset list of all loans in repayment and not paid off
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestGetPayCycleSubsetOfLoans()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            privateObject.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            var _subsetOfLoans = privateObject.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // subset should include the first 3 loans, but not the last 4 loans
+            Assert.AreEqual(3, subsetOfLoans.Count);
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[0]));
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[1]));
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[2]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[3]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[4]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[5]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[6]));
         }
 
 
@@ -75,9 +131,23 @@ namespace StudentLoanSimulatorTests
         /// Set the moneypot to the current date's pay cycle total payment amount
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestGetNextMoneypotAmount()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 3, 1), TotalPayment = 200m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 5, 1), TotalPayment = 200m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            privateObject.SetField("currentPayDate", new DateTime(2018, 4, 1));
+            var moneypot = privateObject.Invoke("GetThisPayCyclesMoneypot");
+
+            Assert.AreEqual(100m, moneypot);
         }
 
 
@@ -85,9 +155,32 @@ namespace StudentLoanSimulatorTests
         /// If the current date cannot determine this pay cycle's moneypot, throw an exception
         /// </summary>
         [TestMethod]
-        [Ignore]
+        [ExpectedException(typeof(StudentLoanSchedule.MoneypotException))]
         public void TestNoMoneypotForThisPayCycle()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2017, 3, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2017, 4, 1), TotalPayment = 200m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2017, 5, 1), TotalPayment = 300m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            privateObject.SetField("currentPayDate", new DateTime(2018, 4, 1));
+            try
+            {
+                var moneypot = privateObject.Invoke("GetThisPayCyclesMoneypot");
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    throw ex.InnerException;
+                }
+            }
         }
 
 
@@ -303,6 +396,9 @@ namespace StudentLoanSimulatorTests
     [TestClass]
     public class StudentLoanClassUnitTests
     {
+        // instance of unit test helper methods
+        UTestHelper UHelper = new UTestHelper();
+
         #region Loan Details
 
         /// <summary>
@@ -367,7 +463,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.APROutOfRangeException))]
         public void TestAPROutOfRange()
         {
-            StudentLoan aPROutOfRangeLoan = NewSafeLoan(testAPR: 1.0325m);
+            StudentLoan aPROutOfRangeLoan = UHelper.NewSafeLoan(testAPR: 1.0325m);
         }
 
         /// <summary>
@@ -437,7 +533,7 @@ namespace StudentLoanSimulatorTests
             String testAccountNumber = "ABC-123456";
             decimal testAPR = 0.0325m;
             decimal testMinPayment = 25.73m;
-            DateTime testPaymentStartDate = DateTime.Now;
+            DateTime testPaymentStartDate = DateTime.Now.Date;
             decimal testStartingPrinciple = 4001.00m;
 
             StudentLoan testStudentLoan = new StudentLoan(testLenderName,
@@ -502,7 +598,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestCalculateInterest()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan(testPaymentStartDate: DateTime.Now);
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan(testPaymentStartDate: DateTime.Now);
             var privateObject = new PrivateObject(testPaymentLoan);
 
             var interest = privateObject.Invoke("CalcInterest", DateTime.Now.AddDays(73));
@@ -519,7 +615,7 @@ namespace StudentLoanSimulatorTests
             // payment start date is 1 hour from midnight (day boundry)
             // principle and interest rate are very high so rounding does not hide behavior
             DateTime loanStartDate = new DateTime(2018, 7, 1, 23, 0, 0);
-            StudentLoan testPaymentLoan = NewPaymentLoan(testPaymentStartDate: loanStartDate, testStartingPrinciple: 100000m, testAPR: 0.50m);
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan(testPaymentStartDate: loanStartDate, testStartingPrinciple: 100000m, testAPR: 0.50m);
 
             var privateObject = new PrivateObject(testPaymentLoan);
 
@@ -537,7 +633,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPaymentReducesPrinciple()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // unlock payments first
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
@@ -545,7 +641,7 @@ namespace StudentLoanSimulatorTests
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
         }
 
         /// <summary>
@@ -554,14 +650,14 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPaymentReducesAccruedInterestFirst()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // unlock payments first
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
 
             // pay less than total accrued interest (expected to be 10.0)
             // only interest should be reduced, the principle should remain unchanged
-            MakeLoanPayment(testPaymentLoan, 4.0m, expectedPrinciple: 1000.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 4.0m, expectedPrinciple: 1000.0m);
         }
 
         /// <summary>
@@ -570,7 +666,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPaymentReducesPrincipleAfterInterest()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // unlock payments first
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
@@ -578,7 +674,7 @@ namespace StudentLoanSimulatorTests
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
         }
 
         /// <summary>
@@ -587,7 +683,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestExtraPaymentFurtherReducesPrinciple()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // unlock payments first
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
@@ -595,13 +691,13 @@ namespace StudentLoanSimulatorTests
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m);
 
             // apply an extra payment after interest paid
             // expected accrued interest = 0.0
             // 30.0 payment - 0.0 interest = 30.0 principle reduction
             // 980.0 starting principle - 30.0 principle reduction = 950.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 950.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 950.0m);
         }
 
         /// <summary>
@@ -610,7 +706,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPaymentDetails()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // unlock payments first
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73));
@@ -618,12 +714,12 @@ namespace StudentLoanSimulatorTests
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m, expectedTotalPayment: 30.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 20.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 980.0m, expectedTotalPayment: 30.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 20.0m);
 
             // expected accrued interest = 0.0
             // 30.0 payment - 0.0 interest = 30.0 principle reduction
             // 980.0 starting principle - 30.0 principle reduction = 950.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 950.0m, expectedTotalPayment: 60.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 50.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m, expectedPrinciple: 950.0m, expectedTotalPayment: 60.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 50.0m);
         }
 
         /// <summary>
@@ -634,7 +730,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
         public void TestLockedPayment()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             // apply an abitrary payment without unlocking payment
             testPaymentLoan.MakePayment(30.0m);
@@ -646,7 +742,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestUnlockPaymentSetsLastPaymentDate()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             DateTime newPaymentDate = DateTime.Now.AddDays(73);
             testPaymentLoan.UnlockPayments(newPaymentDate); // unlock payment (sucessful)
@@ -663,7 +759,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
         public void TestRedundantUnlockPayment()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // unlock payment (sucessful)
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // unlock payment (exception)
@@ -677,7 +773,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
         public void TestRedundantLockPayment()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             testPaymentLoan.LockPayments(); // unlock payment (sucessful)
             testPaymentLoan.LockPayments(); // unlock payment (exception)
@@ -690,7 +786,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentException))]
         public void TestMinimumPaymentMade()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
@@ -704,7 +800,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPreserveAndClearPaymentDetails()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
 
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
@@ -712,16 +808,16 @@ namespace StudentLoanSimulatorTests
             // expected accrued interest = 10.0
             // 30.0 payment - 10.0 interest = 20.0 principle reduction
             // 1000.0 starting principle - 20.0 principle reduction = 980.0 remaining principle
-            MakeLoanPayment(testPaymentLoan, 30.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 30.0m);
 
             testPaymentLoan.LockPayments();
 
-            CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 980.0m, expectedTotalPayment: 30.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 20.0m);
+            UHelper.CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 980.0m, expectedTotalPayment: 30.0m, expectedInterestPayment: 10.0m, expectedPrinciplePayment: 20.0m);
 
             // unlocking payments should clear the last payment details without affecting the principle
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(146));
 
-            CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 980.0m, expectedTotalPayment: 0m, expectedInterestPayment: 0m, expectedPrinciplePayment: 0m);
+            UHelper.CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 980.0m, expectedTotalPayment: 0m, expectedInterestPayment: 0m, expectedPrinciplePayment: 0m);
         }
 
         /// <summary>
@@ -731,7 +827,7 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentsLockException))]
         public void TestLockedPayoffAmount()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
             // assume new loan's payments are locked 
             decimal payoffAmount = testPaymentLoan.PayoffAmount;
         }
@@ -742,7 +838,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPayoffAmount()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
             // expected accrued interest = 10.0
@@ -758,10 +854,10 @@ namespace StudentLoanSimulatorTests
         [ExpectedException(typeof(StudentLoan.PaymentException))]
         public void TestCannotOverpayLoan()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
             // make a payment significantly greater than the loan principle
-            MakeLoanPayment(testPaymentLoan, 100000.0m);
+            UHelper.MakeLoanPayment(testPaymentLoan, 100000.0m);
         }
 
         /// <summary>
@@ -770,18 +866,18 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestPayOffLoan()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
             // verify the loan is not paid off yet
             Assert.AreEqual(false, testPaymentLoan.PaidOff);
 
             // apply a payment that pays off the loan
-            MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
+            UHelper.MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
 
             // verify the loan is now paid off
             Assert.AreEqual(true, testPaymentLoan.PaidOff);
-            CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 0m);
+            UHelper.CheckLastPaymentDetails(testPaymentLoan, expectedPrinciple: 0m);
         }
 
         /// <summary>
@@ -793,11 +889,11 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestLockPaidOffLoan()
         {
-            StudentLoan testPaymentLoan = NewPaymentLoan();
+            StudentLoan testPaymentLoan = UHelper.NewPaymentLoan();
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(73)); // first unlock payments
 
             // apply a payment that leaves 1 penny in the loan
-            MakeLoanPayment(testPaymentLoan, (testPaymentLoan.PayoffAmount - 0.01m));
+            UHelper.MakeLoanPayment(testPaymentLoan, (testPaymentLoan.PayoffAmount - 0.01m));
 
             testPaymentLoan.LockPayments();
 
@@ -806,7 +902,7 @@ namespace StudentLoanSimulatorTests
             testPaymentLoan.UnlockPayments(DateTime.Now.AddDays(75)); // first unlock payments
 
             // apply a payment that pays off the loan and verify it's paid off
-            MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
+            UHelper.MakeLoanPayment(testPaymentLoan, testPaymentLoan.PayoffAmount);
             Assert.AreEqual(true, testPaymentLoan.PaidOff);
 
             testPaymentLoan.LockPayments();
@@ -818,7 +914,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestLoanInRepayment()
         {
-            StudentLoan testStudentLoan = NewSafeLoan(testPaymentStartDate: DateTime.Now.AddYears(1));
+            StudentLoan testStudentLoan = UHelper.NewSafeLoan(testPaymentStartDate: DateTime.Now.AddYears(1));
 
             Assert.AreEqual(false, testStudentLoan.InRepayment(DateTime.Now));
             Assert.AreEqual(true, testStudentLoan.InRepayment(DateTime.Now.AddYears(2)));
@@ -826,13 +922,17 @@ namespace StudentLoanSimulatorTests
 
         #endregion
 
-        #region Helper Methods
+
+    }
+
+    public class UTestHelper
+    {
 
         /// <summary>
         /// Sucessfully creates a StudentLoan object with safe values
         /// This allows tests to isolate manipulated values which intentionally trigger an exception
         /// </summary>
-        private StudentLoan NewSafeLoan(String testLenderName = "Safe Loan",
+        public StudentLoan NewSafeLoan(String testLenderName = "Safe Loan",
                                     String testAccountNumber = "TEST-SAFE",
                                     decimal testAPR = 0.0325m,
                                     decimal testMinPayment = 10.0m,
@@ -863,9 +963,28 @@ namespace StudentLoanSimulatorTests
         }
 
         /// <summary>
+        /// Sucessfully creates a list of StudentLoan objects with safe values
+        /// </summary>
+        public List<StudentLoan> NewSafeLoanList()
+        {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2016, 1, 1)),
+                NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2017, 4, 1)),
+                NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1)),
+                NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+
+            return listOfLoans;
+        }
+
+        /// <summary>
         /// Sucessfully creates a StudentLoan object with values that are easy to work with when testing loan payments
         /// </summary>
-        private StudentLoan NewPaymentLoan(String testLenderName = "Payment Loan",
+        public StudentLoan NewPaymentLoan(String testLenderName = "Payment Loan",
                                            String testAccountNumber = "TEST-454590",
                                            decimal testAPR = 0.05m,
                                            decimal testMinPayment = 10.61m,
@@ -896,14 +1015,14 @@ namespace StudentLoanSimulatorTests
             return paymentLoan;
         }
 
-        private void MakeLoanPayment(StudentLoan loan, decimal payment, decimal expectedPrinciple = -1m, decimal expectedTotalPayment = -1m, decimal expectedInterestPayment = -1m, decimal expectedPrinciplePayment = -1m)
+        public void MakeLoanPayment(StudentLoan loan, decimal payment, decimal expectedPrinciple = -1m, decimal expectedTotalPayment = -1m, decimal expectedInterestPayment = -1m, decimal expectedPrinciplePayment = -1m)
         {
             loan.MakePayment(payment);
 
             CheckLastPaymentDetails(loan, expectedPrinciple, expectedTotalPayment, expectedInterestPayment, expectedPrinciplePayment);
         }
 
-        private void CheckLastPaymentDetails(StudentLoan loan, decimal expectedPrinciple = -1m, decimal expectedTotalPayment = -1m, decimal expectedInterestPayment = -1m, decimal expectedPrinciplePayment = -1m)
+        public void CheckLastPaymentDetails(StudentLoan loan, decimal expectedPrinciple = -1m, decimal expectedTotalPayment = -1m, decimal expectedInterestPayment = -1m, decimal expectedPrinciplePayment = -1m)
         {
             // check payment was handled correctly
             if (expectedPrinciple != -1m)
@@ -926,6 +1045,5 @@ namespace StudentLoanSimulatorTests
                 Assert.AreEqual(expectedPrinciplePayment, loan.LastPayment.PrinciplePayment);
             }
         }
-        #endregion
     }
 }

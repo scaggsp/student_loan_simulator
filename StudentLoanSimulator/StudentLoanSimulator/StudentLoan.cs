@@ -4,6 +4,8 @@ namespace StudentLoanSimulator
 {
     public class StudentLoan
     {
+        #region Properies
+
         public String LenderName { get; }
         public String AccountNumber { get; }
         public decimal APR { get; }
@@ -38,6 +40,10 @@ namespace StudentLoanSimulator
         private PaymentLock paymentLock;
         private decimal accruedInterest;
 
+        #endregion
+
+        #region Constructors
+
         public StudentLoan(String lenderName,
                            String accountNumber,
                            decimal aPR,
@@ -65,13 +71,15 @@ namespace StudentLoanSimulator
             }
 
             MinPayment = minPayment;
-            PaymentStartDate = paymentStartDate;
+            PaymentStartDate = paymentStartDate.Date;
             Principle = startingPrinciple;
             
             paymentLock = PaymentLock.PaymentsLocked;
             LastPayment = new LastPaymentDetails();
-            LastPayment.PaymentDate = paymentStartDate;
+            LastPayment.PaymentDate = PaymentStartDate;
         }
+
+        #endregion
 
         public void UnlockPayments(DateTime paymentDate)
         {
