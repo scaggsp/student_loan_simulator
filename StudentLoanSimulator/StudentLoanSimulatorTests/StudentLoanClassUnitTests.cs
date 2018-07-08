@@ -9,163 +9,292 @@ namespace StudentLoanSimulatorTests
     /// Unit tests of the StudentLoanSimulator class (i.e. Manage loan payments through the life of the loan)
     /// </summary>
     [TestClass]
-    public class StudentLoanSimulatorClassUnitTests
+    public class StudentLoanScheduleClassUnitTests
     {
 
         /// <summary>
         /// Parse an XML file for a single loan's details
         /// </summary>
-
+        [TestMethod]
+        [Ignore]
+        public void TestParseForSingleLoa()
+        {
+        }
 
         /// <summary>
         /// Parse an XML file for multiple loan details
         /// </summary>
-
+        [TestMethod]
+        [Ignore]
+        public void TestParseForMulipleLoans()
+        {
+        }
 
         /// <summary>
         /// Parse an XML file for payment dates and amounts pairs
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestParseForPayments()
+        {
+        }
 
 
         /// <summary>
         /// From a list of loans, find the earliest start date
         /// Set the "current" date to the earliest start date
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestFindEarliestStartDate()
+        {
+        }
 
 
         /// <summary>
         /// Get a subset list of all loans in repayment and not paid off
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestGetPayCycleSubsetOfLoans()
+        {
+        }
 
 
         /// <summary>
         /// If all loans are paid off, end simulation
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestEndSimulation()
+        {
+        }
 
 
         /// <summary>
         /// Set the moneypot to the current date's pay cycle total payment amount
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestGetNextMoneypotAmount()
+        {
+        }
 
 
         /// <summary>
         /// If the current date cannot determine this pay cycle's moneypot, throw an exception
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestNoMoneypotForThisPayCycle()
+        {
+        }
 
 
         /// <summary>
         /// If the subset list is empty and this pay cycle's moneypot != 0, throw exception
         /// Payment of loans when they're not yet in repayment is not supported
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestGapInRepayment()
+        {
+        }
 
 
         /// <summary>
         /// Unlock payments for the only the subset of loans
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestUnlockSubsetOfLoans()
+        {
+        }
 
 
         /// <summary>
         /// Determine this pay cycle's total minimum payment required by the subset loan list
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestPayCycleMinimumPayment()
+        {
+        }
 
 
         /// <summary>
         /// Determine this pay cycle's total minimum payment required when a loan's minimum payment is > it's payoff amount
         /// i.e. when paying a loan's minimum payment will reduce the principle < 0
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestPayCycleMinimumPaymentWithPayOff()
+        {
+        }
 
 
         /// <summary>
         /// If the moneypot is < the minimum payments, throw an exception
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestMoneypotDoesNotCoverMinimumPayments()
+        {
+        }
 
 
         /// <summary>
         /// Apply the mimimum payment to this pay cycle's loans
         /// Each payment should reduce the moneypot appropriately
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestApplyMinimumPayments()
+        {
+        }
 
 
         /// <summary>
         /// Paying off a loan when paying it's minimum payment locks payment and removes it from this pay cycle's loan list
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestMinimumPaymentPaysOffLoan()
+        {
+        }
 
 
         /// <summary>
         /// Determine this pay cycle's extra payment amount
         /// extra payment amount = moneypot - total minimum payments
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestDetermineExtraPaymentAmount()
+        {
+        }
 
 
         /// <summary>
         /// Determine which loan of the subset of loans has the highest APR
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestFindHighestAPRInSubset()
+        {
+        }
 
 
         /// <summary>
         /// Paying off a loan when making an extra payment locks payment and removes it from this pay cycle's loan list
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestExtraPaymentPaysOffLoan()
+        {
+        }
 
 
         /// <summary>
         /// Apply extra payments to loans
         /// The first payment pays off an loan. The remaining moneypot is applied to the loan with the next highest APR
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestApplyExtraPayments()
+        {
+        }
 
 
         /// <summary>
         /// Paying off all the subset loans ends this pay cycle leaving the moneypot > 0
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestMoneypotNotFullyUsed()
+        {
+        }
 
 
         /// <summary>
         /// Lock payments for the only the subset of loans after all payments complete
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestLockSubsetOfLoans()
+        {
+        }
 
 
         /// <summary>
         /// Advance the "current" date ahead to the next payment date
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestAdvanceDateToNextPayCycle()
+        {
+        }
 
 
         /// <summary>
         /// Accept an optional directory parameter to specify the csv file location
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestAcceptLogDirectoryOptionalArgument()
+        {
+        }
 
 
         /// <summary>
         /// Create a csv file that will record simple payment details
         /// Only check that the header are correct. No payments will be included
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestCreateSimplePaymentLogFile()
+        {
+        }
 
 
         /// <summary>
         /// Create a csv file that will record expanded payment details
         /// Only check that the header are correct. No payments will be included
         /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void TestCreateExpandedPaymentLogFile()
+        {
+        }
 
 
         /// <summary>
         /// Add a payment to the simple payment file
         /// </summary>
-
+        [TestMethod]
+        [Ignore]
+        public void TestAddSimplePaymentToLogFile()
+        {
+        }
 
         /// <summary>
         /// Add a payment to the expanded payment file
         /// </summary>
-
+        [TestMethod]
+        [Ignore]
+        public void TestAddExpandedPaymentToLogFile()
+        {
+        }
 
         /// <summary>
         /// Only loans whose last payment date == current date are recorded
         /// All other loans record 0 for all payment details
         /// </summary>
-
-
-        /// <summary>
-        /// Advance the "current" date ahead to the next payment date
-        /// </summary>
-        
-        
+        [TestMethod]
+        [Ignore]
+        public void TestOnlyLogLoansWithPaymentsThisPayCycle()
+        {
+        }
     }
 
     /// <summary>
