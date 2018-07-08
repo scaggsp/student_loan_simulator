@@ -8,7 +8,6 @@ namespace StudentLoanSimulator
         #region Properties
 
         private List<StudentLoan> fullListOfLoans;
-        private List<StudentLoan> thisPayCyclesLoans;
         private DateTime currentPayDate;
 
         private List<ScheduledPayment> scheduledPayments;
@@ -82,6 +81,48 @@ namespace StudentLoanSimulator
             }
 
             return thisPayCycleMoneypot;
+        }
+        
+        private void UnlockPayments(List<StudentLoan> listOfLoans)
+        {
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                loan.UnlockPayments(currentPayDate);
+            }
+        }
+        
+        private decimal GetMinimumPayments(List<StudentLoan> listOfLoans)
+        {
+            decimal totalMinPayment = 0m;
+
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                decimal minPayment = loan.MinPayment;
+                decimal payOffAmount = loan.PayoffAmount;
+
+                if (payOffAmount < minPayment)
+                {
+                    totalMinPayment += payOffAmount;
+                }
+                else
+                {
+                    totalMinPayment += minPayment;
+                }
+            }
+
+            return totalMinPayment;
+        }
+
+        private void LoadMoneypot(List<StudentLoan> listOfLoans)
+        {
+            decimal moneypot = GetThisPayCyclesMoneypot();
+            UnlockPayments(listOfLoans);
+            decimal totalMinPayment = GetMinimumPayments(listOfLoans);
+
+            if (moneypot < totalMinPayment)
+            {
+                throw new MoneypotException("This pay cycle's total payment does not cover the loan minimum payments!");
+            }
         }
         #endregion
 

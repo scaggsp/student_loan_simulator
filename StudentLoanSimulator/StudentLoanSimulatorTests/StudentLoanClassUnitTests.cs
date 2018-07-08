@@ -199,9 +199,32 @@ namespace StudentLoanSimulatorTests
         /// Unlock payments for the only the subset of loans
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestUnlockSubsetOfLoans()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                var privateLoan = new PrivateObject(loan);
+                var loanLock = privateLoan.GetField("paymentLock");
+
+                if (true == subsetOfLoans.Contains(loan))
+                {
+                    Assert.AreEqual(StudentLoan.PaymentLock.PaymentsUnlocked, loanLock);
+                }
+                else
+                {
+                    Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
+                }
+            }
         }
 
 
@@ -209,9 +232,21 @@ namespace StudentLoanSimulatorTests
         /// Determine this pay cycle's total minimum payment required by the subset loan list
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestPayCycleMinimumPayment()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            Assert.AreEqual(30m, totalMinimumPayment);
         }
 
 
@@ -220,9 +255,30 @@ namespace StudentLoanSimulatorTests
         /// i.e. when paying a loan's minimum payment will reduce the principle < 0
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestPayCycleMinimumPaymentWithPayOff()
         {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2016, 1, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2017, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1), testStartingPrinciple: 5m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            Assert.AreEqual(25m, totalMinimumPayment);
         }
 
 
@@ -230,9 +286,34 @@ namespace StudentLoanSimulatorTests
         /// If the moneypot is < the minimum payments, throw an exception
         /// </summary>
         [TestMethod]
-        [Ignore]
+        [ExpectedException(typeof(StudentLoanSchedule.MoneypotException))]
         public void TestMoneypotDoesNotCoverMinimumPayments()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 10m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // The pay cycle total payment (moneypot) is only 10, but the minimum payment should be 30
+            try
+            {
+                privateSchedule.Invoke("LoadMoneypot", subsetOfLoans);
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    throw ex.InnerException;
+                }
+            }
         }
 
 

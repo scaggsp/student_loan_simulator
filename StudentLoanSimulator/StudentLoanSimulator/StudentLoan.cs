@@ -4,7 +4,7 @@ namespace StudentLoanSimulator
 {
     public class StudentLoan
     {
-        #region Properies
+        #region Properies and Fields
 
         public String LenderName { get; }
         public String AccountNumber { get; }
@@ -188,7 +188,7 @@ namespace StudentLoanSimulator
             public DateTime PaymentDate { get; set; }
         }
 
-        private enum PaymentLock
+        public enum PaymentLock
         {
             PaymentsLocked,
             PaymentsUnlocked
