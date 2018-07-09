@@ -90,7 +90,20 @@ namespace StudentLoanSimulator
                 loan.UnlockPayments(currentPayDate);
             }
         }
-        
+
+        private void LockPayments(StudentLoan loan)
+        {
+            loan.LockPayments();
+        }
+
+        private void LockPayments(List<StudentLoan> listOfLoans)
+        {
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                loan.LockPayments();
+            }
+        }
+
         private decimal GetMinimumPayments(List<StudentLoan> listOfLoans)
         {
             decimal totalMinPayment = 0m;
@@ -123,6 +136,34 @@ namespace StudentLoanSimulator
             {
                 throw new MoneypotException("This pay cycle's total payment does not cover the loan minimum payments!");
             }
+        }
+
+        private decimal MakeMinimumPayments(List<StudentLoan> listOfLoans)
+        {
+            decimal totalPaymentMade = 0m;
+
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                decimal minPayment = loan.MinPayment;
+                decimal payOffAmount = loan.PayoffAmount;
+
+                if (payOffAmount < minPayment)
+                {
+                    totalPaymentMade += payOffAmount;
+                    loan.MakePayment(payOffAmount); // pay off the loan
+                    LockPayments(loan); // lock the loan to reject any future payments
+                }
+                else
+                {
+                    totalPaymentMade += minPayment;
+                    loan.MakePayment(minPayment);
+                }
+            }
+
+            // remove any loans paid off when making minimum payments
+            listOfLoans.RemoveAll(loan => loan.Principle == 0m);
+
+            return totalPaymentMade;
         }
         #endregion
 

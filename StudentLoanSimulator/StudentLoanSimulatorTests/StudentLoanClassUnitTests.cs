@@ -318,13 +318,113 @@ namespace StudentLoanSimulatorTests
 
 
         /// <summary>
+        /// Lock payments for the only a single loan
+        /// </summary>
+        [TestMethod]
+        public void TestLockSingleLoan()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // force the payment lock to Unlocked
+            StudentLoan singleLoan = listOfLoans[0];
+            var privateLoan = new PrivateObject(singleLoan);
+            privateLoan.SetField("paymentLock", StudentLoan.PaymentLock.PaymentsUnlocked);
+
+            // force the principle to 0 so lock will not check the minimum payment has been made
+            privateLoan.SetProperty("Principle", 0m);
+
+            // attempt to lock payments
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.Invoke("LockPayments", singleLoan);
+
+            // get the loan's payment loan value and assert it is now locked
+            var loanLock = privateLoan.GetField("paymentLock");
+            Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
+        }
+
+
+        /// <summary>
+        /// Lock payments for the only the subset of loans after all payments complete
+        /// </summary>
+        [TestMethod]
+        public void TestLockSubsetOfLoans()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // the subset of loans only includes the first three loans
+            List<StudentLoan> subsetOfLoans = new List<StudentLoan>()
+            {
+                listOfLoans[0],
+                listOfLoans[1],
+                listOfLoans[2],
+            };
+
+            // set all loans to unlocked so only the subset of loans are confirmed to be locked by method
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                // force the payment lock to Unlocked
+                StudentLoan singleLoan = loan;
+                var privateLoan = new PrivateObject(singleLoan);
+                privateLoan.SetField("paymentLock", StudentLoan.PaymentLock.PaymentsUnlocked);
+
+                // force the principle to 0 so lock will not check the minimum payment has been made
+                privateLoan.SetProperty("Principle", 0m);
+            }
+
+            // attempt to lock payments of only the subset of loans
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.Invoke("LockPayments", subsetOfLoans);
+
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                var privateLoan = new PrivateObject(loan);
+                var loanLock = privateLoan.GetField("paymentLock");
+
+                if (true == subsetOfLoans.Contains(loan))
+                {
+                    Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
+                }
+                else
+                {
+                    Assert.AreEqual(StudentLoan.PaymentLock.PaymentsUnlocked, loanLock);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Apply the mimimum payment to this pay cycle's loans
         /// Each payment should reduce the moneypot appropriately
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestApplyMinimumPayments()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // start a pay cycle by setting the current date
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+
+            // get the subset of loans for this pay cycle
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // unlock the subset of loans so interest can be calculted
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            // get the total minimum payment required for the subset of loans
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            // make the minimum payments to subset of loans and verify payment amount
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+            Assert.AreEqual(totalMinimumPayment, paymentMade);
+
+            // attempt to lock the loans
+            // loans will only lock if their minimum payment was made
+            privateSchedule.Invoke("LockPayments", subsetOfLoans);
         }
 
 
@@ -332,9 +432,51 @@ namespace StudentLoanSimulatorTests
         /// Paying off a loan when paying it's minimum payment locks payment and removes it from this pay cycle's loan list
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestMinimumPaymentPaysOffLoan()
         {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2016, 1, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2017, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1), testStartingPrinciple: 5m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // start a pay cycle by setting the current date
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+
+            // get the subset of loans for this pay cycle
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // unlock the subset of loans so interest can be calculted
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            // get the total minimum payment required for the subset of loans
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            // make the minimum payments to subset of loans and verify payment amount
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+
+            // the third loan should no longer be part of the subset of loans
+            StudentLoan singleLoan = listOfLoans[2];
+            Assert.IsFalse(subsetOfLoans.Contains(singleLoan));
+
+            // verify the third loan is paid off and locked
+            var privateLoan = new PrivateObject(singleLoan);
+
+            // assert the loan is paid off
+            var paidOff = privateLoan.GetProperty("PaidOff");
+            Assert.AreEqual(true, paidOff);
+
+            // get the loan's payment lock value and assert it is now locked
+            var loanLock = privateLoan.GetField("paymentLock");
+            Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
         }
 
 
@@ -386,16 +528,6 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         [Ignore]
         public void TestMoneypotNotFullyUsed()
-        {
-        }
-
-
-        /// <summary>
-        /// Lock payments for the only the subset of loans after all payments complete
-        /// </summary>
-        [TestMethod]
-        [Ignore]
-        public void TestLockSubsetOfLoans()
         {
         }
 
