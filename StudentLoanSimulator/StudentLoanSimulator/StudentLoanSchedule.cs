@@ -11,6 +11,7 @@ namespace StudentLoanSimulator
         private DateTime currentPayDate;
 
         private List<ScheduledPayment> scheduledPayments;
+        private int paymentIndex;
 
         #endregion
 
@@ -25,6 +26,12 @@ namespace StudentLoanSimulator
 
             fullListOfLoans = listOfLoans;
             scheduledPayments = listOfPayments;
+            paymentIndex = 0;
+
+            if (scheduledPayments != null)
+            {
+                scheduledPayments.Sort((x, y) => DateTime.Compare(x.PaymentDate, y.PaymentDate));
+            }
 
             // set the current pay date to the loan list's earliest start date
             currentPayDate = GetEarliestStartDate();
@@ -165,6 +172,80 @@ namespace StudentLoanSimulator
 
             return totalPaymentMade;
         }
+
+        private StudentLoan FindHighestAPRLoan(List<StudentLoan> listOfLoans)
+        {
+            StudentLoan highestAPRLoan = listOfLoans[0];
+
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                if (loan.APR > highestAPRLoan.APR)
+                {
+                    // this loan has a higher APR
+                    highestAPRLoan = loan;
+                }
+                else if (loan.APR == highestAPRLoan.APR)
+                {
+                    // if the apr is the same, prioritize the lower principle loan
+                    if (loan.Principle < highestAPRLoan.Principle)
+                    {
+                        highestAPRLoan = loan;
+                    }
+                }
+            }
+
+            return highestAPRLoan;
+        }
+
+        private void MakeExtraPayments(List<StudentLoan> listOfLoans, ref decimal moneypot)
+        {
+            decimal remainingMoneypot = moneypot;
+            decimal totalPaymentsMade = 0m;
+
+            while ((remainingMoneypot != 0) && (listOfLoans.Count != 0))
+            {
+                StudentLoan highestAPRLoan = FindHighestAPRLoan(listOfLoans);
+                decimal paymentAmount = 0;
+                if (highestAPRLoan.PayoffAmount <= remainingMoneypot)
+                {
+                    // extra payment will pay off loan
+                    paymentAmount = highestAPRLoan.PayoffAmount;
+                    highestAPRLoan.MakePayment(paymentAmount);
+                    LockPayments(highestAPRLoan); // lock the loan to reject any future payments
+                }
+                else
+                {
+                    paymentAmount = remainingMoneypot;
+                    highestAPRLoan.MakePayment(paymentAmount);
+                }
+
+                totalPaymentsMade += paymentAmount;
+                remainingMoneypot -= paymentAmount;
+
+                // remove any loans paid off when making minimum payments
+                listOfLoans.RemoveAll(loan => loan.Principle == 0m);
+            }
+
+            moneypot = remainingMoneypot;
+        }
+
+        /// <summary>
+        /// Finds the next payment date in scheduledPayments
+        /// currentPayDate is set to this next payment date
+        /// </summary>
+        private void AdvanceToNextPayCycleDate()
+        {
+            paymentIndex++;
+
+            // check for out of bounds
+            if (paymentIndex > (scheduledPayments.Count - 1))
+            {
+                throw new ScheduledPaymentsException("No other scheduled payments exist!");
+            }
+
+            // advance date
+            currentPayDate = scheduledPayments[paymentIndex].PaymentDate;
+        }
         #endregion
 
         #region Exceptions
@@ -198,6 +279,23 @@ namespace StudentLoanSimulator
             }
 
             public MoneypotException(string message, Exception inner)
+                : base(message, inner)
+            {
+            }
+        }
+
+        public class ScheduledPaymentsException : Exception
+        {
+            public ScheduledPaymentsException()
+            {
+            }
+
+            public ScheduledPaymentsException(string message)
+                : base(message)
+            {
+            }
+
+            public ScheduledPaymentsException(string message, Exception inner)
                 : base(message, inner)
             {
             }

@@ -128,6 +128,36 @@ namespace StudentLoanSimulatorTests
 
 
         /// <summary>
+        /// Constructor sorts the payments from earliest to latest
+        /// </summary>
+        [TestMethod]
+        public void TestSortPaymentList()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 5, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 3, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 100m},
+            };
+
+            List<ScheduledPayment> sortedListOfPayments = new List<ScheduledPayment>
+            {
+                listOfPayments[1],
+                listOfPayments[2],
+                listOfPayments[0],
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            var scheduledPayments = privateObject.GetField("scheduledPayments");
+            
+            CollectionAssert.AreEqual(sortedListOfPayments, listOfPayments);
+        }
+
+
+        /// <summary>
         /// Set the moneypot to the current date's pay cycle total payment amount
         /// </summary>
         [TestMethod]
@@ -493,11 +523,27 @@ namespace StudentLoanSimulatorTests
 
         /// <summary>
         /// Determine which loan of the subset of loans has the highest APR
+        /// If two loan's have the same APR, the lower principle loan is prioritized
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestFindHighestAPRInSubset()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // the subset of loans only includes the first three loans
+            List<StudentLoan> subsetOfLoans = new List<StudentLoan>()
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testAPR: 0.03m, testStartingPrinciple: 250m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testAPR: 0.06m, testStartingPrinciple: 500m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testAPR: 0.06m, testStartingPrinciple: 1000m),
+            };
+
+            // attempt to lock payments of only the subset of loans
+            var privateSchedule = new PrivateObject(testSchedule);
+            var highestAPRLoan = privateSchedule.Invoke("FindHighestAPRLoan", subsetOfLoans);
+
+            Assert.AreSame(subsetOfLoans[1], highestAPRLoan);
         }
 
 
@@ -505,9 +551,56 @@ namespace StudentLoanSimulatorTests
         /// Paying off a loan when making an extra payment locks payment and removes it from this pay cycle's loan list
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestExtraPaymentPaysOffLoan()
         {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2016, 1, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2017, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.06m, testStartingPrinciple: 15m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // start a pay cycle by setting the current date
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+
+            // get the subset of loans for this pay cycle
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // unlock the subset of loans so interest can be calculted
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            // get the total minimum payment required for the subset of loans
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            // make the minimum payments to subset of loans and verify payment amount
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+
+            // make extra payments to subset of loans from the moneypot
+            // the highest APR loan (loan 3) should recieve the extra payment
+            decimal moneypot = 5m;
+            privateSchedule.Invoke("MakeExtraPayments", subsetOfLoans, moneypot);
+
+            // the third loan should no longer be part of the subset of loans
+            StudentLoan singleLoan = listOfLoans[2];
+            Assert.IsFalse(subsetOfLoans.Contains(singleLoan));
+
+            // verify the third loan is paid off and locked
+            var privateLoan = new PrivateObject(singleLoan);
+
+            // assert the loan is paid off
+            var paidOff = privateLoan.GetProperty("PaidOff");
+            Assert.AreEqual(true, paidOff);
+
+            // get the loan's payment lock value and assert it is now locked
+            var loanLock = privateLoan.GetField("paymentLock");
+            Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
         }
 
 
@@ -516,9 +609,51 @@ namespace StudentLoanSimulatorTests
         /// The first payment pays off an loan. The remaining moneypot is applied to the loan with the next highest APR
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestApplyExtraPayments()
         {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2016, 1, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.06m, testStartingPrinciple: 50m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.06m, testStartingPrinciple: 15m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // start a pay cycle by setting the current date
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+
+            // get the subset of loans for this pay cycle
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // unlock the subset of loans so interest can be calculted
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            // get the total minimum payment required for the subset of loans
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            // make the minimum payments to subset of loans and verify payment amount
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+
+            // make extra payments to subset of loans from the moneypot
+            // the highest APR loan (loan 3) should recieve the extra payment first, then loan two
+            decimal moneypot = 15m;
+            privateSchedule.Invoke("MakeExtraPayments", subsetOfLoans, moneypot);
+
+            // the third loan should no longer be part of the subset of loans
+            StudentLoan singleLoan = listOfLoans[2];
+            Assert.IsFalse(subsetOfLoans.Contains(singleLoan));
+
+            // the second loan should still be part of the subset of loans
+            // the principle should be reduced by 10 min payment + 10 extra payment
+            singleLoan = listOfLoans[1];
+            Assert.IsTrue(subsetOfLoans.Contains(singleLoan));
+            Assert.AreEqual(30m, singleLoan.Principle);
         }
 
 
@@ -526,9 +661,51 @@ namespace StudentLoanSimulatorTests
         /// Paying off all the subset loans ends this pay cycle leaving the moneypot > 0
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestMoneypotNotFullyUsed()
         {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Loan 1", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.05m, testStartingPrinciple: 100m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 2", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.06m, testStartingPrinciple: 50m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 3", testPaymentStartDate: new DateTime(2018, 4, 1), testAPR: 0.06m, testStartingPrinciple: 15m),
+                UHelper.NewSafeLoan(testLenderName: "Loan 4", testPaymentStartDate: new DateTime(2021, 4, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // start a pay cycle by setting the current date
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 4, 1));
+
+            // get the subset of loans for this pay cycle
+            var _subsetOfLoans = privateSchedule.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // unlock the subset of loans so interest can be calculted
+            privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
+
+            // get the total minimum payment required for the subset of loans
+            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
+
+            // make the minimum payments to subset of loans and verify payment amount
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+
+            // make extra payments to subset of loans from the moneypot
+            // this should more than pay off all loans in the subset
+            // only 135 is needed to pay off all loans => 15 should remain in moneypot
+            decimal moneypot = 150m;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            privateSchedule.Invoke("MakeExtraPayments", args);
+            // Invoke handles ref parameters by passing by value and replacing the args array value back through the array (not the ref object in the array
+            moneypot = (decimal)args[1];
+
+            // the subset should not contain any loans
+            Assert.AreEqual(0, subsetOfLoans.Count);
+
+            // the moneypot should still have 15 remaining
+            Assert.AreEqual(15m, moneypot);
         }
 
 
@@ -536,9 +713,61 @@ namespace StudentLoanSimulatorTests
         /// Advance the "current" date ahead to the next payment date
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestAdvanceDateToNextPayCycle()
         {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 5, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 6, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 7, 1), TotalPayment = 10m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("paymentIndex", 1);
+            privateSchedule.Invoke("AdvanceToNextPayCycleDate");
+
+            var currentDate = privateSchedule.GetField("currentPayDate");
+
+            Assert.AreEqual(new DateTime(2018, 6, 1), currentDate);
+        }
+
+
+        /// <summary>
+        /// Advancing the current date when no future payments exist throws an exception
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(StudentLoanSchedule.ScheduledPaymentsException))]
+        public void TestAdvanceDatePastEndOfScheduledPayments()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 5, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 6, 1), TotalPayment = 10m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 7, 1), TotalPayment = 10m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("paymentIndex", 3);
+
+            try
+            {
+                privateSchedule.Invoke("AdvanceToNextPayCycleDate");
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null)
+                {
+                    throw ex.InnerException;
+                }
+            }
         }
 
 
@@ -1134,7 +1363,6 @@ namespace StudentLoanSimulatorTests
         }
 
         #endregion
-
 
     }
 
