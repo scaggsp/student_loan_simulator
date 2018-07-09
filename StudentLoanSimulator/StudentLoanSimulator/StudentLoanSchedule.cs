@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace StudentLoanSimulator
 {
@@ -13,11 +14,13 @@ namespace StudentLoanSimulator
         private List<ScheduledPayment> scheduledPayments;
         private int paymentIndex;
 
+        private string logFileDirectory;
+
         #endregion
 
         #region Constructors
 
-        public StudentLoanSchedule(List<StudentLoan> listOfLoans, List<ScheduledPayment> listOfPayments)
+        public StudentLoanSchedule(List<StudentLoan> listOfLoans, List<ScheduledPayment> listOfPayments, string setLogFileDirectory = @".\Payment Schedules\")
         {
             if (listOfLoans.Count == 0)
             {
@@ -32,6 +35,8 @@ namespace StudentLoanSimulator
             {
                 scheduledPayments.Sort((x, y) => DateTime.Compare(x.PaymentDate, y.PaymentDate));
             }
+
+            logFileDirectory = setLogFileDirectory;
 
             // set the current pay date to the loan list's earliest start date
             currentPayDate = GetEarliestStartDate();
@@ -245,6 +250,12 @@ namespace StudentLoanSimulator
 
             // advance date
             currentPayDate = scheduledPayments[paymentIndex].PaymentDate;
+        }
+
+        private void SetupLogDirectory()
+        {
+            string absPath = Path.GetFullPath(logFileDirectory);
+            Directory.CreateDirectory(logFileDirectory);
         }
         #endregion
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StudentLoanSimulator;
@@ -773,11 +774,59 @@ namespace StudentLoanSimulatorTests
 
         /// <summary>
         /// Accept an optional directory parameter to specify the csv file location
+        /// Not providing the parameter uses default value
+        /// </summary>
+        [TestMethod]
+        public void TestUseDefaultLogDirectoryArgument()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            var logFileDirector = privateSchedule.GetField("logFileDirectory");
+
+            Assert.AreEqual(@".\Payment Schedules\", logFileDirector);
+        }
+
+        /// <summary>
+        /// Accept an optional directory parameter to specify the csv file location
+        /// Providing the parameter uses parameter value
+        /// </summary>
+        [TestMethod]
+        public void TestUseProvidedLogDirectoryArgument()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            string expectedLogFileDirectory = @"..\Payment Schedules\";
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, expectedLogFileDirectory);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            var logFileDirector = privateSchedule.GetField("logFileDirectory");
+
+            Assert.AreEqual(expectedLogFileDirectory, logFileDirector);
+        }
+
+
+        /// <summary>
+        /// Create log directory if it does not exist
+        /// Remove the log directory first to ensure the method actually recreates it
         /// </summary>
         [TestMethod]
         [Ignore]
-        public void TestAcceptLogDirectoryOptionalArgument()
+        public void TestCreateLogDirectoryIfNeeded()
         {
+            string expectedLogFileDirectory = @"\Payment Schedules\";
+            if (Directory.Exists(expectedLogFileDirectory) == true)
+            {
+                Directory.Delete(expectedLogFileDirectory);
+            }
+
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, expectedLogFileDirectory);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.Invoke("SetupLogDirectory");
+
+            Assert.IsTrue(Directory.Exists(expectedLogFileDirectory));
         }
 
 
