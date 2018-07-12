@@ -6,6 +6,11 @@ namespace StudentLoanSimulator
 {
     public class StudentLoanSchedule
     {
+        #region Constants
+        const string SIMPLE_LOG_FILENAME = "Simple Payment Schedule.csv";
+        const string EXPANDED_LOG_FILENAME = "Detailed Payment Schedule.csv";
+        #endregion
+
         #region Properties
 
         private List<StudentLoan> fullListOfLoans;
@@ -254,8 +259,58 @@ namespace StudentLoanSimulator
 
         private void SetupLogDirectory()
         {
-            string absPath = Path.GetFullPath(logFileDirectory);
             Directory.CreateDirectory(logFileDirectory);
+        }
+
+        private void CreateSimpleLogFile()
+        {
+            string header = "Date,Payment Total";
+
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                // expected loan header "<LenderName>: <AccountNumber>"
+                string loanHeader = loan.LenderName + ": " + loan.AccountNumber;
+                header = header + "," + loanHeader;
+            }
+
+            // create simple log file
+            string simpleLogFilePath = Path.Combine(logFileDirectory, SIMPLE_LOG_FILENAME);
+            using (FileStream fs = File.Create(simpleLogFilePath))  // auto-dispose filestream
+            {
+                using (StreamWriter sw = new StreamWriter(fs))
+                {
+                    sw.WriteLine(header);
+                }
+            }
+        }
+
+        private void CreateExpandedLogFile()
+        {
+            string header = "Date,Principle Total,Interest Total,Payment Total";
+
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                string loanHeader = loan.LenderName + ": " + loan.AccountNumber;
+                // three seperate headers (principle, interest, payment)
+                string principleHeader = loanHeader + " - Principle";
+                string interestHeader = loanHeader + " - Interest";
+                string paymentHeader = loanHeader + " - Payment";
+
+                // add the three loan headers to log header
+                header = header + "," + principleHeader;
+                header = header + "," + interestHeader;
+                header = header + "," + paymentHeader;
+            }
+
+            // create simple log file
+            string expandedLogFilePath = Path.Combine(logFileDirectory, EXPANDED_LOG_FILENAME);
+            using (FileStream fs = File.Create(expandedLogFilePath))  // auto-dispose filestream
+            {
+                using (StreamWriter sw = new StreamWriter(fs))
+                {
+                    sw.WriteLine(header);
+                }
+            }
         }
         #endregion
 

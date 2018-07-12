@@ -13,6 +13,16 @@ namespace StudentLoanSimulatorTests
     [TestClass]
     public class StudentLoanScheduleClassUnitTests
     {
+        #region Log File Constants
+
+        const string expectedLogFileDir = @".\Expected Log Files\";
+        const string expectedSimpleLogFilename = "Test Simple Payment Log Header.csv";
+        const string expectedExpandedLogFilename = "Test Detailed Payment Log Header.csv";
+        const string actualSimpleLogFilename = "Simple Payment Schedule.csv";
+        const string actualExpandedLogFilename = "Detailed Payment Schedule.csv";
+
+        #endregion
+
         // instance of unit test helper methods
         UTestHelper UHelper = new UTestHelper();
         List<ScheduledPayment> DummyPayments = new List<ScheduledPayment>();
@@ -816,7 +826,7 @@ namespace StudentLoanSimulatorTests
             string expectedLogFileDirectory = @".\Payment Schedules\";
             if (Directory.Exists(expectedLogFileDirectory) == true)
             {
-                Directory.Delete(expectedLogFileDirectory);
+                Directory.Delete(expectedLogFileDirectory, true);
             }
 
             List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
@@ -831,23 +841,63 @@ namespace StudentLoanSimulatorTests
 
         /// <summary>
         /// Create a csv file that will record simple payment details
-        /// Only check that the header are correct. No payments will be included
+        /// Only check that the header is correct. No payments will be included
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestCreateSimplePaymentLogFile()
         {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleLogFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.Invoke("CreateSimpleLogFile");
+
+            // assert the log file exists
+            Assert.IsTrue(File.Exists(actualLogFilePath));
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[0], actualLogFile[0], StringComparison.Ordinal));
         }
 
 
         /// <summary>
         /// Create a csv file that will record expanded payment details
-        /// Only check that the header are correct. No payments will be included
+        /// Only check that the header is correct. No payments will be included
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestCreateExpandedPaymentLogFile()
         {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedLogFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.Invoke("CreateExpandedLogFile");
+
+            // assert the log file exists
+            Assert.IsTrue(File.Exists(actualLogFilePath));
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[0], actualLogFile[0], StringComparison.Ordinal));
         }
 
 
@@ -1465,6 +1515,21 @@ namespace StudentLoanSimulatorTests
                 NewSafeLoan(testLenderName: "Loan 5", testPaymentStartDate: new DateTime(2022, 3, 1)),
                 NewSafeLoan(testLenderName: "Loan 6", testPaymentStartDate: new DateTime(2023, 3, 1)),
                 NewSafeLoan(testLenderName: "Loan 7", testPaymentStartDate: new DateTime(2024, 3, 1)),
+            };
+
+            return listOfLoans;
+        }
+
+        /// <summary>
+        /// Sucessfully creates a list of StudentLoan objects for log file tests
+        /// </summary>
+        public List<StudentLoan> NewLogLoanList()
+        {
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-1111"),
+                NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-2222"),
+                NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-3333"),
             };
 
             return listOfLoans;
