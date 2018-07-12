@@ -811,10 +811,9 @@ namespace StudentLoanSimulatorTests
         /// Remove the log directory first to ensure the method actually recreates it
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestCreateLogDirectoryIfNeeded()
         {
-            string expectedLogFileDirectory = @"\Payment Schedules\";
+            string expectedLogFileDirectory = @".\Payment Schedules\";
             if (Directory.Exists(expectedLogFileDirectory) == true)
             {
                 Directory.Delete(expectedLogFileDirectory);
