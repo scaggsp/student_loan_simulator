@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StudentLoanSimulator;
+using static StudentLoanSimulator.StudentLoan;
 
 namespace StudentLoanSimulatorTests
 {
@@ -16,8 +17,12 @@ namespace StudentLoanSimulatorTests
         #region Log File Constants
 
         const string expectedLogFileDir = @".\Expected Log Files\";
-        const string expectedSimpleLogFilename = "Test Simple Payment Log Header.csv";
-        const string expectedExpandedLogFilename = "Test Detailed Payment Log Header.csv";
+        const string expectedSimpleLogHeaderFilename = "Test Simple Payment Log Header.csv";
+        const string expectedExpandedLogHeaderFilename = "Test Detailed Payment Log Header.csv";
+        const string expectedSimpleLogPaymentFilename = "Test Simple Payment Log Payment.csv";
+        const string expectedExpandedLogPaymentFilename = "Test Detailed Payment Log Payment.csv";
+        const string expectedSimpleLogSubsetPaymentFilename = "Test Simple Payment Log Subset Payment.csv";
+        const string expectedExpandedLogSubsetPaymentFilename = "Test Detailed Payment Log Subset Payment.csv";
         const string actualSimpleLogFilename = "Simple Payment Schedule.csv";
         const string actualExpandedLogFilename = "Detailed Payment Schedule.csv";
 
@@ -846,7 +851,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestCreateSimplePaymentLogFile()
         {
-            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleLogFilename);
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleLogHeaderFilename);
             string actualLogFileDir = @".\Payment Schedules\";
             string actualLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
 
@@ -877,7 +882,7 @@ namespace StudentLoanSimulatorTests
         [TestMethod]
         public void TestCreateExpandedPaymentLogFile()
         {
-            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedLogFilename);
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedLogHeaderFilename);
             string actualLogFileDir = @".\Payment Schedules\";
             string actualLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
 
@@ -905,18 +910,56 @@ namespace StudentLoanSimulatorTests
         /// Add a payment to the simple payment file
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestAddSimplePaymentToLogFile()
         {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleLogPaymentFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            privateSchedule.Invoke("CreateSimpleLogFile");
+            privateSchedule.Invoke("LogSimplePaymentDetails");
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
         }
 
         /// <summary>
         /// Add a payment to the expanded payment file
         /// </summary>
         [TestMethod]
-        [Ignore]
         public void TestAddExpandedPaymentToLogFile()
         {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedLogPaymentFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            privateSchedule.Invoke("CreateExpandedLogFile");
+            privateSchedule.Invoke("LogExpandedPaymentDetails");
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
         }
 
         /// <summary>
@@ -924,9 +967,78 @@ namespace StudentLoanSimulatorTests
         /// All other loans record 0 for all payment details
         /// </summary>
         [TestMethod]
-        [Ignore]
-        public void TestOnlyLogLoansWithPaymentsThisPayCycle()
+        public void TestOnlySimpleLogLoansWithPaymentsThisPayCycle()
         {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleLogSubsetPaymentFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+
+            // add a loan with different last payment dates
+            StudentLoan differentPaymentLoan = UHelper.NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-4444");
+            LastPaymentDetails lastPayment = new LastPaymentDetails(40m, 8m, 32m, new DateTime(2018, 6, 1));
+            var privateLoan = new PrivateObject(differentPaymentLoan);
+            privateLoan.SetProperty("LastPayment", lastPayment);
+
+            // add the loan to the list of loans
+            listOfLoans.Add(differentPaymentLoan);
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            privateSchedule.Invoke("CreateSimpleLogFile");
+            privateSchedule.Invoke("LogSimplePaymentDetails");
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
+        }
+
+
+        /// <summary>
+        /// Only loans whose last payment date == current date are recorded
+        /// All other loans record 0 for all payment details
+        /// </summary>
+        [TestMethod]
+        public void TestOnlyExpandedLogLoansWithPaymentsThisPayCycle()
+        {
+            string expectedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedLogSubsetPaymentFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
+
+            // add a loan with different last payment dates
+            StudentLoan differentPaymentLoan = UHelper.NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-4444");
+            LastPaymentDetails lastPayment = new LastPaymentDetails(40m, 8m, 32m, new DateTime(2018, 6, 1));
+            var privateLoan = new PrivateObject(differentPaymentLoan);
+            privateLoan.SetProperty("LastPayment", lastPayment);
+
+            // add the loan to the list of loans
+            listOfLoans.Add(differentPaymentLoan);
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateSchedule = new PrivateObject(testSchedule);
+            privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            privateSchedule.Invoke("CreateExpandedLogFile");
+            privateSchedule.Invoke("LogExpandedPaymentDetails");
+
+            // compare the header file of the expected and actual schedule files
+            string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
+            string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
+
+            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
         }
     }
 
@@ -1531,6 +1643,25 @@ namespace StudentLoanSimulatorTests
                 NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-2222"),
                 NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-3333"),
             };
+
+            // setup the last payments
+            List<LastPaymentDetails> listOfLastPayment = new List<LastPaymentDetails>()
+            {
+                new LastPaymentDetails(10m, 2m, 8m, new DateTime(2018, 7, 1)),
+                new LastPaymentDetails(20m, 4m, 16m, new DateTime(2018, 7, 1)),
+                new LastPaymentDetails(30m, 6m, 24m, new DateTime(2018, 7, 1)),
+            };
+
+            // set all loans last payment information
+            int index = 0;
+            foreach (StudentLoan loan in listOfLoans)
+            {
+                // force the payment lock to Unlocked
+                var privateLoan = new PrivateObject(loan);
+                privateLoan.SetProperty("LastPayment", listOfLastPayment[index]);
+
+                index++;
+            }
 
             return listOfLoans;
         }

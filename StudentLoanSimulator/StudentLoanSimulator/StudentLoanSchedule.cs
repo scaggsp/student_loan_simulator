@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace StudentLoanSimulator
 {
@@ -264,14 +265,15 @@ namespace StudentLoanSimulator
 
         private void CreateSimpleLogFile()
         {
-            string header = "Date,Payment Total";
+            StringBuilder header = new StringBuilder();
+            header.Append("Date,Payment Total,");
 
             foreach (StudentLoan loan in fullListOfLoans)
             {
                 // expected loan header "<LenderName>: <AccountNumber>"
-                string loanHeader = loan.LenderName + ": " + loan.AccountNumber;
-                header = header + "," + loanHeader;
+                header.Append(loan.LenderName + ": " + loan.AccountNumber).Append(",");
             }
+            header.Length--; // remove the last comma
 
             // create simple log file
             string simpleLogFilePath = Path.Combine(logFileDirectory, SIMPLE_LOG_FILENAME);
@@ -286,21 +288,19 @@ namespace StudentLoanSimulator
 
         private void CreateExpandedLogFile()
         {
-            string header = "Date,Principle Total,Interest Total,Payment Total";
+            StringBuilder header = new StringBuilder();
+            header.Append("Date,Principle Total,Interest Total,Payment Total,");
 
             foreach (StudentLoan loan in fullListOfLoans)
             {
                 string loanHeader = loan.LenderName + ": " + loan.AccountNumber;
-                // three seperate headers (principle, interest, payment)
-                string principleHeader = loanHeader + " - Principle";
-                string interestHeader = loanHeader + " - Interest";
-                string paymentHeader = loanHeader + " - Payment";
 
                 // add the three loan headers to log header
-                header = header + "," + principleHeader;
-                header = header + "," + interestHeader;
-                header = header + "," + paymentHeader;
+                header.Append(loanHeader + " - Principle").Append(",");
+                header.Append(loanHeader + " - Interest").Append(",");
+                header.Append(loanHeader + " - Payment").Append(",");
             }
+            header.Length--; // remove the last comma
 
             // create simple log file
             string expandedLogFilePath = Path.Combine(logFileDirectory, EXPANDED_LOG_FILENAME);
@@ -310,6 +310,116 @@ namespace StudentLoanSimulator
                 {
                     sw.WriteLine(header);
                 }
+            }
+        }
+
+        private void LogSimplePaymentDetails()
+        {
+            StringBuilder paymentLine = new StringBuilder();
+
+            // add the payment Date
+            paymentLine.Append("\"").Append(currentPayDate.ToString("MMMM, yyyy")).Append("\"").Append(",");
+
+            // determine this pay cycle's total payment amount
+            decimal totalPayment = 0m;
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                if (loan.LastPayment.PaymentDate.Date == currentPayDate.Date)
+                {
+                    totalPayment += loan.LastPayment.TotalPayment;
+                }
+            }
+
+            // add total payment to payment line
+            paymentLine.Append(totalPayment).Append(",");
+
+            // add each loan's total payment
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                // only log payments that match the current pay cycle date
+                if (loan.LastPayment.PaymentDate.Date == currentPayDate.Date)
+                {
+                    paymentLine.Append(loan.LastPayment.TotalPayment).Append(",");
+                }
+                else
+                {
+                    paymentLine.Append(0).Append(",");
+                }
+            }
+            paymentLine.Length--; // remove the last comma
+
+            // create simple log file
+            string simpleLogFilePath = Path.Combine(logFileDirectory, SIMPLE_LOG_FILENAME);
+            using (StreamWriter sw = File.AppendText(simpleLogFilePath))
+            {
+                sw.WriteLine(paymentLine);
+            }
+            LogPaymentDetails(PaymentLogType.SimplePaymentLog, SIMPLE_LOG_FILENAME);
+        }
+
+        private void LogExpandedPaymentDetails()
+        {
+            LogPaymentDetails(PaymentLogType.ExpandedPaymentLog, EXPANDED_LOG_FILENAME);
+        }
+
+        private void LogPaymentDetails(PaymentLogType logType, string logFilename)
+        {
+            StringBuilder paymentLine = new StringBuilder();
+
+            // add the payment Date
+            paymentLine.Append("\"").Append(currentPayDate.ToString("MMMM, yyyy")).Append("\"").Append(",");
+
+            // determine this pay cycle's total payment amount
+            decimal totalPayment = 0m;
+            decimal totalInterest = 0m;
+            decimal totalPrinciple = 0m;
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                if (loan.LastPayment.PaymentDate.Date == currentPayDate.Date)
+                {
+                    totalPrinciple += loan.LastPayment.PrinciplePayment;
+                    totalInterest += loan.LastPayment.InterestPayment;
+                    totalPayment += loan.LastPayment.TotalPayment;
+                }
+            }
+
+            // add total payment details to payment line
+            if (logType == PaymentLogType.ExpandedPaymentLog)
+            {
+                paymentLine.Append(totalPrinciple).Append(",");
+                paymentLine.Append(totalInterest).Append(",");
+            }
+            paymentLine.Append(totalPayment).Append(",");
+
+            // add each loan's total payment
+            foreach (StudentLoan loan in fullListOfLoans)
+            {
+                // only log payments that match the current pay cycle date
+                decimal paymentPrinciple = 0;
+                decimal paymentInterest = 0;
+                decimal paymentTotal = 0;
+
+                if (loan.LastPayment.PaymentDate.Date == currentPayDate.Date)
+                {
+                    paymentPrinciple = loan.LastPayment.PrinciplePayment;
+                    paymentInterest = loan.LastPayment.InterestPayment;
+                    paymentTotal = loan.LastPayment.TotalPayment;
+                }
+
+                if (logType == PaymentLogType.ExpandedPaymentLog)
+                {
+                    paymentLine.Append(paymentPrinciple).Append(",");
+                    paymentLine.Append(paymentInterest).Append(",");
+                }
+                paymentLine.Append(paymentTotal).Append(",");
+            }
+            paymentLine.Length--; // remove the last comma
+
+            // add payment to log file
+            string logFilePath = Path.Combine(logFileDirectory, logFilename);
+            using (StreamWriter sw = File.AppendText(logFilePath))
+            {
+                sw.WriteLine(paymentLine);
             }
         }
         #endregion
@@ -367,6 +477,12 @@ namespace StudentLoanSimulator
             }
         }
         #endregion
+
+        private enum PaymentLogType
+        {
+            SimplePaymentLog,
+            ExpandedPaymentLog
+        }
     }
 
     public class ScheduledPayment

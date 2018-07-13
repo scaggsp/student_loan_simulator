@@ -186,6 +186,17 @@ namespace StudentLoanSimulator
             public decimal InterestPayment { get; set; }
             public decimal PrinciplePayment { get; set; }
             public DateTime PaymentDate { get; set; }
+
+            public LastPaymentDetails(decimal totalPayment = 0m, decimal interestPayment = 0m, decimal principlePayment = 0m, DateTime? paymentDate = null)
+            {
+                TotalPayment = totalPayment;
+                InterestPayment = interestPayment;
+                PrinciplePayment = principlePayment;
+                if (paymentDate != null)
+                {
+                    PaymentDate = (DateTime)paymentDate;
+                }
+            }
         }
 
         public enum PaymentLock

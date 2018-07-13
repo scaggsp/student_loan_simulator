@@ -58,10 +58,16 @@
     <None Include="Expected Log Files\Test Detailed Payment Log Payment.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Expected Log Files\Test Detailed Payment Log Subset Payment.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Expected Log Files\Test Simple Payment Log Header.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Expected Log Files\Test Simple Payment Log Payment.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Expected Log Files\Test Simple Payment Log Subset Payment.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
