@@ -23,6 +23,9 @@ namespace StudentLoanSimulatorTests
         const string expectedExpandedLogPaymentFilename = "Test Detailed Payment Log Payment.csv";
         const string expectedSimpleLogSubsetPaymentFilename = "Test Simple Payment Log Subset Payment.csv";
         const string expectedExpandedLogSubsetPaymentFilename = "Test Detailed Payment Log Subset Payment.csv";
+        const string expectedSimpleCompleteLogFilename = "Test Complete Simple Payment Log.csv";
+        const string expectedExpandedCompleteLogFilename = "Test Complete Detailed Payment Log .csv";
+
         const string actualSimpleLogFilename = "Simple Payment Schedule.csv";
         const string actualExpandedLogFilename = "Detailed Payment Schedule.csv";
 
@@ -31,6 +34,8 @@ namespace StudentLoanSimulatorTests
         // instance of unit test helper methods
         UTestHelper UHelper = new UTestHelper();
         List<ScheduledPayment> DummyPayments = new List<ScheduledPayment>();
+
+        #region Parse Input Files
 
         /// <summary>
         /// Parse an XML file for a single loan's details
@@ -58,6 +63,10 @@ namespace StudentLoanSimulatorTests
         public void TestParseForPayments()
         {
         }
+
+        #endregion
+
+        #region Constructor Tests
 
         /// <summary>
         /// The StudentLoanSchedule constructor accepts a list of loans
@@ -92,56 +101,25 @@ namespace StudentLoanSimulatorTests
         /// Set the "current" date to the earliest start date
         /// </summary>
         [TestMethod]
-        public void TestFindEarliestStartDate()
+        public void TestConstructorSetsCurrentPayDateToEarliestPaymentDate()
         {
             List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
-            DateTime expectedStartDate = new DateTime(2016, 1, 1);
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                new ScheduledPayment() { PaymentDate = new DateTime(2016, 2, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2016, 3, 1), TotalPayment = 100m},
+                new ScheduledPayment() { PaymentDate = new DateTime(2016, 4, 1), TotalPayment = 100m},
+            };
 
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            DateTime expectedStartDate = new DateTime(2016, 2, 1);
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
 
             var privateObject = new PrivateObject(testSchedule);
             var startingDate = privateObject.GetField("currentPayDate");
 
             Assert.AreEqual(expectedStartDate, startingDate);
         }
-
-
-        /// <summary>
-        /// Get a subset list of all loans in repayment and not paid off
-        /// </summary>
-        [TestMethod]
-        public void TestGetPayCycleSubsetOfLoans()
-        {
-            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
-
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
-
-            var privateObject = new PrivateObject(testSchedule);
-            privateObject.SetField("currentPayDate", new DateTime(2018, 7, 1));
-            var _subsetOfLoans = privateObject.Invoke("GetThisPayCyclesLoans");
-            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
-
-            // subset should include the first 3 loans, but not the last 4 loans
-            Assert.AreEqual(3, subsetOfLoans.Count);
-            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[0]));
-            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[1]));
-            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[2]));
-            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[3]));
-            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[4]));
-            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[5]));
-            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[6]));
-        }
-
-
-        /// <summary>
-        /// If all loans are paid off, end simulation
-        /// </summary>
-        [TestMethod]
-        [Ignore]
-        public void TestEndSimulation()
-        {
-        }
-
 
         /// <summary>
         /// Constructor sorts the payments from earliest to latest
@@ -168,8 +146,38 @@ namespace StudentLoanSimulatorTests
 
             var privateObject = new PrivateObject(testSchedule);
             var scheduledPayments = privateObject.GetField("scheduledPayments");
-            
+
             CollectionAssert.AreEqual(sortedListOfPayments, listOfPayments);
+        }
+
+        #endregion
+
+        #region Test Helper Functions
+
+        /// <summary>
+        /// Get a subset list of all loans in repayment and not paid off
+        /// </summary>
+        [TestMethod]
+        public void TestGetPayCycleSubsetOfLoans()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            var privateObject = new PrivateObject(testSchedule);
+            privateObject.SetField("currentPayDate", new DateTime(2018, 7, 1));
+            var _subsetOfLoans = privateObject.Invoke("GetThisPayCyclesLoans");
+            List<StudentLoan> subsetOfLoans = (List<StudentLoan>)_subsetOfLoans;
+
+            // subset should include the first 3 loans, but not the last 4 loans
+            Assert.AreEqual(3, subsetOfLoans.Count);
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[0]));
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[1]));
+            Assert.IsTrue(subsetOfLoans.Contains(listOfLoans[2]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[3]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[4]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[5]));
+            Assert.IsFalse(subsetOfLoans.Contains(listOfLoans[6]));
         }
 
 
@@ -227,17 +235,6 @@ namespace StudentLoanSimulatorTests
                     throw ex.InnerException;
                 }
             }
-        }
-
-
-        /// <summary>
-        /// If the subset list is empty and this pay cycle's moneypot != 0, throw exception
-        /// Payment of loans when they're not yet in repayment is not supported
-        /// </summary>
-        [TestMethod]
-        [Ignore]
-        public void TestGapInRepayment()
-        {
         }
 
 
@@ -465,8 +462,13 @@ namespace StudentLoanSimulatorTests
             var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
 
             // make the minimum payments to subset of loans and verify payment amount
-            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
-            Assert.AreEqual(totalMinimumPayment, paymentMade);
+            decimal moneypot = (decimal)totalMinimumPayment;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", args);
+            // Invoke handles ref parameters by passing by value and replacing the args array value back through the array (not the ref object in the array
+            moneypot = (decimal)args[1];
+
+            Assert.AreEqual(0m, moneypot);
 
             // attempt to lock the loans
             // loans will only lock if their minimum payment was made
@@ -503,11 +505,10 @@ namespace StudentLoanSimulatorTests
             // unlock the subset of loans so interest can be calculted
             privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
 
-            // get the total minimum payment required for the subset of loans
-            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
-
-            // make the minimum payments to subset of loans and verify payment amount
-            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+            // make the minimum payments to subset of loans
+            decimal moneypot = 0m;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", args);
 
             // the third loan should no longer be part of the subset of loans
             StudentLoan singleLoan = listOfLoans[2];
@@ -523,17 +524,6 @@ namespace StudentLoanSimulatorTests
             // get the loan's payment lock value and assert it is now locked
             var loanLock = privateLoan.GetField("paymentLock");
             Assert.AreEqual(StudentLoan.PaymentLock.PaymentsLocked, loanLock);
-        }
-
-
-        /// <summary>
-        /// Determine this pay cycle's extra payment amount
-        /// extra payment amount = moneypot - total minimum payments
-        /// </summary>
-        [TestMethod]
-        [Ignore]
-        public void TestDetermineExtraPaymentAmount()
-        {
         }
 
 
@@ -592,15 +582,14 @@ namespace StudentLoanSimulatorTests
             // unlock the subset of loans so interest can be calculted
             privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
 
-            // get the total minimum payment required for the subset of loans
-            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
-
-            // make the minimum payments to subset of loans and verify payment amount
-            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+            // make the minimum payments to subset of loans
+            decimal moneypot = 0m;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", args);
 
             // make extra payments to subset of loans from the moneypot
             // the highest APR loan (loan 3) should recieve the extra payment
-            decimal moneypot = 5m;
+            moneypot = 5m;
             privateSchedule.Invoke("MakeExtraPayments", subsetOfLoans, moneypot);
 
             // the third loan should no longer be part of the subset of loans
@@ -650,15 +639,14 @@ namespace StudentLoanSimulatorTests
             // unlock the subset of loans so interest can be calculted
             privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
 
-            // get the total minimum payment required for the subset of loans
-            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
-
-            // make the minimum payments to subset of loans and verify payment amount
-            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+            // make the minimum payments to subset of loans
+            decimal moneypot = 0m;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", args);
 
             // make extra payments to subset of loans from the moneypot
             // the highest APR loan (loan 3) should recieve the extra payment first, then loan two
-            decimal moneypot = 15m;
+            moneypot = 15m;
             privateSchedule.Invoke("MakeExtraPayments", subsetOfLoans, moneypot);
 
             // the third loan should no longer be part of the subset of loans
@@ -702,17 +690,16 @@ namespace StudentLoanSimulatorTests
             // unlock the subset of loans so interest can be calculted
             privateSchedule.Invoke("UnlockPayments", subsetOfLoans);
 
-            // get the total minimum payment required for the subset of loans
-            var totalMinimumPayment = privateSchedule.Invoke("GetMinimumPayments", subsetOfLoans);
-
-            // make the minimum payments to subset of loans and verify payment amount
-            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", subsetOfLoans);
+            // make the minimum payments to subset of loans
+            decimal moneypot = 0m;
+            object[] args = new object[] { subsetOfLoans, moneypot };
+            var paymentMade = privateSchedule.Invoke("MakeMinimumPayments", args);
 
             // make extra payments to subset of loans from the moneypot
             // this should more than pay off all loans in the subset
             // only 135 is needed to pay off all loans => 15 should remain in moneypot
-            decimal moneypot = 150m;
-            object[] args = new object[] { subsetOfLoans, moneypot };
+            moneypot = 150m;
+            args = new object[] { subsetOfLoans, moneypot };
             privateSchedule.Invoke("MakeExtraPayments", args);
             // Invoke handles ref parameters by passing by value and replacing the args array value back through the array (not the ref object in the array
             moneypot = (decimal)args[1];
@@ -743,12 +730,15 @@ namespace StudentLoanSimulatorTests
             StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
 
             var privateSchedule = new PrivateObject(testSchedule);
-            privateSchedule.SetField("paymentIndex", 1);
+            privateSchedule.SetField("paymentIndex", 0);
             privateSchedule.Invoke("AdvanceToNextPayCycleDate");
 
             var currentDate = privateSchedule.GetField("currentPayDate");
 
-            Assert.AreEqual(new DateTime(2018, 6, 1), currentDate);
+            Assert.AreEqual(new DateTime(2018, 5, 1), currentDate);
+
+            // last payment should have been removed from the list
+            Assert.AreEqual(3, listOfPayments.Count);
         }
 
 
@@ -760,13 +750,7 @@ namespace StudentLoanSimulatorTests
         public void TestAdvanceDatePastEndOfScheduledPayments()
         {
             List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
-            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
-            {
-                new ScheduledPayment() { PaymentDate = new DateTime(2018, 4, 1), TotalPayment = 10m},
-                new ScheduledPayment() { PaymentDate = new DateTime(2018, 5, 1), TotalPayment = 10m},
-                new ScheduledPayment() { PaymentDate = new DateTime(2018, 6, 1), TotalPayment = 10m},
-                new ScheduledPayment() { PaymentDate = new DateTime(2018, 7, 1), TotalPayment = 10m},
-            };
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment> { };
 
             StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments);
 
@@ -871,7 +855,8 @@ namespace StudentLoanSimulatorTests
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
 
-            Assert.IsTrue(String.Equals(expectedLogFile[0], actualLogFile[0], StringComparison.Ordinal));
+            uint index = 0; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
 
 
@@ -901,8 +886,9 @@ namespace StudentLoanSimulatorTests
             // compare the header file of the expected and actual schedule files
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
-
-            Assert.IsTrue(String.Equals(expectedLogFile[0], actualLogFile[0], StringComparison.Ordinal));
+            
+            uint index = 0; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
 
 
@@ -920,7 +906,7 @@ namespace StudentLoanSimulatorTests
             Directory.CreateDirectory(actualLogFileDir);
 
             List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
             
             var privateSchedule = new PrivateObject(testSchedule);
             privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
@@ -931,7 +917,8 @@ namespace StudentLoanSimulatorTests
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
 
-            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
+            uint index = 1; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
 
         /// <summary>
@@ -948,7 +935,7 @@ namespace StudentLoanSimulatorTests
             Directory.CreateDirectory(actualLogFileDir);
 
             List<StudentLoan> listOfLoans = UHelper.NewLogLoanList();
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
 
             var privateSchedule = new PrivateObject(testSchedule);
             privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
@@ -959,7 +946,8 @@ namespace StudentLoanSimulatorTests
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
 
-            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
+            uint index = 1; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
 
         /// <summary>
@@ -987,7 +975,7 @@ namespace StudentLoanSimulatorTests
             // add the loan to the list of loans
             listOfLoans.Add(differentPaymentLoan);
 
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
 
             var privateSchedule = new PrivateObject(testSchedule);
             privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
@@ -998,7 +986,8 @@ namespace StudentLoanSimulatorTests
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
 
-            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
+            uint index = 1; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
 
 
@@ -1027,7 +1016,7 @@ namespace StudentLoanSimulatorTests
             // add the loan to the list of loans
             listOfLoans.Add(differentPaymentLoan);
 
-            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments, actualLogFileDir);
 
             var privateSchedule = new PrivateObject(testSchedule);
             privateSchedule.SetField("currentPayDate", new DateTime(2018, 7, 1));
@@ -1038,8 +1027,103 @@ namespace StudentLoanSimulatorTests
             string[] expectedLogFile = File.ReadAllLines(expectedLogFilePath);
             string[] actualLogFile = File.ReadAllLines(actualLogFilePath);
 
-            Assert.IsTrue(String.Equals(expectedLogFile[1], actualLogFile[1], StringComparison.Ordinal));
+            uint index = 1; // file line to compare
+            Assert.IsTrue(String.Equals(expectedLogFile[index], actualLogFile[index], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedLogFile[index], actualLogFile[index]));
         }
+
+        /// <summary>
+        /// Get the number of loans not paid off yet
+        /// </summary>
+        [TestMethod]
+        public void TestGetActiveLoanCount()
+        {
+            List<StudentLoan> listOfLoans = UHelper.NewSafeLoanList();
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, DummyPayments);
+
+            // pay off 4 loans
+            List<StudentLoan> paidOffLoans = new List<StudentLoan>()
+            {
+                listOfLoans[0],
+                listOfLoans[1],
+                listOfLoans[2],
+                listOfLoans[3],
+            };
+
+            foreach (StudentLoan loan in paidOffLoans)
+            {
+                // force the payment lock to Unlocked
+                StudentLoan singleLoan = loan;
+                var privateLoan = new PrivateObject(singleLoan);
+
+                // force the principle to 0 so loan reports it's paid off
+                privateLoan.SetProperty("Principle", 0m);
+            }
+
+            var privateObject = new PrivateObject(testSchedule);
+            var activeLoanCount = privateObject.Invoke("GetActiveLoanCount");
+
+            Assert.AreEqual(3U, activeLoanCount);
+        }
+
+        #endregion
+
+        #region Test Glue Functions
+
+        /// <summary>
+        /// Supply a list of 2 loans and completely simulate their repayment
+        /// Correctness is verified by comparing the generated schedules (and lack of exceptions)
+        /// </summary>
+        [TestMethod]
+        public void TestCompletelySimulateLoans()
+        {
+            string expectedSimpleLogFilePath = Path.Combine(expectedLogFileDir, expectedSimpleCompleteLogFilename);
+            string expectedExpandedLogFilePath = Path.Combine(expectedLogFileDir, expectedExpandedCompleteLogFilename);
+            string actualLogFileDir = @".\Payment Schedules\";
+            string actualSimpleLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
+            string actualExpandedLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
+
+            // ensure the log directory exists
+            Directory.CreateDirectory(actualLogFileDir);
+
+            List<StudentLoan> listOfLoans = new List<StudentLoan>
+            {
+                UHelper.NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-1111", testPaymentStartDate: new DateTime(2018, 1, 1)),
+                UHelper.NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-2222", testPaymentStartDate: new DateTime(2018, 3, 1)),
+            };
+
+            List<ScheduledPayment> listOfPayments = new List<ScheduledPayment>
+            {
+                // first payment should only apply to loan 1 (loan 2 not in repayment yet)
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 2, 1), TotalPayment = 40m},
+                // second payment should pay off both loans
+                new ScheduledPayment() { PaymentDate = new DateTime(2018, 3, 1), TotalPayment = 61m},
+            };
+
+            StudentLoanSchedule testSchedule = new StudentLoanSchedule(listOfLoans, listOfPayments, actualLogFileDir);
+
+            testSchedule.GenerateSchedule();
+
+            // compare the simple schedule files
+            string[] expectedSimpleLogFile = File.ReadAllLines(expectedSimpleLogFilePath);
+            string[] actualSimpleLogFile = File.ReadAllLines(actualSimpleLogFilePath);
+
+            for (int i = 0; i < expectedSimpleLogFile.Length; i++)
+            {
+                Assert.IsTrue(String.Equals(expectedSimpleLogFile[i], actualSimpleLogFile[i], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedSimpleLogFile[i], actualSimpleLogFile[i]));
+            }
+
+            // compare the detailed schedule files
+            string[] expectedExpandedLogFile = File.ReadAllLines(expectedExpandedLogFilePath);
+            string[] actualExpandedLogFile = File.ReadAllLines(actualExpandedLogFilePath);
+
+            for (int i = 0; i < expectedExpandedLogFile.Length; i++)
+            {
+                Assert.IsTrue(String.Equals(expectedExpandedLogFile[i], actualExpandedLogFile[i], StringComparison.Ordinal), String.Format("\r\nExpected: {0}\r\nActual: {1}", expectedExpandedLogFile[i], actualExpandedLogFile[i]));
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>

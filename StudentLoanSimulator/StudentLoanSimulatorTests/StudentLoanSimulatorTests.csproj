@@ -52,6 +52,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Expected Log Files\Test Complete Detailed Payment Log .csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Expected Log Files\Test Complete Simple Payment Log.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Expected Log Files\Test Detailed Payment Log Header.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
