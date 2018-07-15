@@ -1083,9 +1083,6 @@ namespace StudentLoanSimulatorTests
             string actualSimpleLogFilePath = Path.Combine(actualLogFileDir, actualSimpleLogFilename);
             string actualExpandedLogFilePath = Path.Combine(actualLogFileDir, actualExpandedLogFilename);
 
-            // ensure the log directory exists
-            Directory.CreateDirectory(actualLogFileDir);
-
             List<StudentLoan> listOfLoans = new List<StudentLoan>
             {
                 UHelper.NewSafeLoan(testLenderName: "Test Lender", testAccountNumber: "123456-1111", testPaymentStartDate: new DateTime(2018, 1, 1)),
